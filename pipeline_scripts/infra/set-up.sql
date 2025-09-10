@@ -25,7 +25,6 @@ CREATE TABLE users (
   user_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username        TEXT NOT NULL UNIQUE,
   email           TEXT NOT NULL UNIQUE,
-  password_hash   TEXT NOT NULL,
   is_admin        BOOLEAN NOT NULL DEFAULT false, -- <--- new flag
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_login_at   TIMESTAMPTZ
@@ -253,3 +252,46 @@ CREATE INDEX IF NOT EXISTS ix_content_ticker ON content(ticker);
 -- =========================================================
 -- End of reset + setup script (admin-edit-only content)
 -- =========================================================
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
+
+GRANT ALL ON TABLE companies TO service_role;
+GRANT ALL ON TABLE company_officers TO service_role;
+GRANT ALL ON TABLE financials TO service_role;
+
+-- Create a function that runs after a new auth user is created
+create or replace function public.handle_new_auth_user()
+returns trigger language plpgsql
+as $$
+begin
+  -- Insert a row into your public.users profile table
+  insert into public.users (user_id, email, username, created_at)
+  values (NEW.id::uuid, NEW.email, COALESCE(NEW.raw_user_meta->>'username', NEW.email), now())
+  on conflict (user_id) do nothing;
+
+  return NEW;
+end;
+$$;
+
+-- Create the trigger on auth.users (fires for each new auth user)
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_auth_user();
+
+-- Automatically create a profile row when a new user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (user_id, email, username)
+  VALUES (NEW.id, NEW.email, split_part(NEW.email, '@', 1))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
