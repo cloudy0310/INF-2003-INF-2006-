@@ -1,21 +1,388 @@
 ticker,name,title,year_of_birth,age,fiscal_year,total_pay,extra,created_at
-MSFT,Mr. Satya  Nadella,Chairman & CEO,1967,57,2024,7869791,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Mr. Bradford L. Smith LCA,President & Vice Chairman,1959,65,2024,4755618,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Mr. Frank X. Shaw,Chief Communications Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Mr. Hossein  Nowbar,Chief Legal Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Jonathan  Neilson,Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Ms. Alice L. Jolla,Corporate VP & Chief Accounting Officer,1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Ms. Carolina  Dybeck Happe,Executive VP & COO,1972,52,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Mr. Judson B. Althoff,Executive VP & Chief Commercial Officer,1973,51,2024,4534974,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Ms. Amy E. Hood,Executive VP & CFO,1972,52,2024,4704250,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-MSFT,Mr. Takeshi  Numoto,Executive VP & Chief Marketing Officer,1971,53,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.112412
-AAPL,Mr. Greg  Joswiak,Senior Vice President of Worldwide Marketing,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.040580
-AAPL,Ms. Kristin Huguet Quayle,Vice President of Worldwide Communications,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.040580
-AAPL,Suhasini  Chandramouli,Director of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.040580
-AAPL,Mr. Chris  Kondo,Senior Director of Corporate Accounting,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.040580
-AAPL,Mr. Sabih  Khan,Chief Operating Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.040580
-AAPL,Mr. Kevan  Parekh,Senior VP & CFO,1972,52,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.040580
-AAPL,Ms. Katherine L. Adams,"Senior VP, General Counsel & Secretary",1964,60,2024,5022182,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.039581
-AAPL,Mr. Jeffrey E. Williams,"Senior Vice President of Design, Watch, & Health",1964,60,2024,5020737,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.039581
-AAPL,Ms. Deirdre  O'Brien,Chief People Officer & Senior VP of Retail,1967,57,2024,5022182,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.039581
-AAPL,Mr. Timothy D. Cook,CEO & Director,1961,63,2024,16520856,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T01:01:56.039581
+SE,Mr. Feng  Zhao,President of Garena,1984,40,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SE,Ms. Yanjun  Wang Esq.,"Chief Corporate Officer, Group General Counsel & Company Secretary",1980,44,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SE,Mr. Tony Tianyu Hou,Chief Financial Officer,1978,46,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SE,Mr. Jingye  Chen,Co-Founder & Chief Product Officer of Shopee,1981,43,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SE,Mr. Gang  Ye,"Co-Founder, COO & Director",1980,44,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SE,Mr. Chris Zhimin  Feng,President,1983,41,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SE,Mr. Xiaodong  Li,"Founder, Chairman & CEO",1978,46,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:21.044264
+SHOP,Ms. Jessica Rose Hertz,General Counsel,<NA>,<NA>,2024,1000000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Mr. Tobias  Lütke,"Founder, Chairman, CEO and Head of R&D",1981,43,2024,1,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Mr. Harley  Finkelstein,President,1983,41,2024,929563,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Mr. Jeff J. Hoffmeister CPA,Chief Financial Officer,<NA>,<NA>,2024,1000000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Mr. Kasra  Nejatian,VP of Product & COO,<NA>,<NA>,2024,800000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Michael L. Johnson,Corporate Secretary,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Ms. Carrie  Gillard,Director of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Ms. Bharati  Balakrishnan,Country Head & Director- India,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Darryl  Arvai,VP & Corporate Controller,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+SHOP,Ms. Vanessa  Lee,Product Director,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.970090
+DJT,Mr. Vladimir  Novachki,Chief Technology Officer,1988,36,2024,1471703,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.877242
+DJT,Mr. Phillip  Juhan,CFO & Treasurer,1975,49,2024,5890250,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.877242
+DJT,Mr. Devin G. Nunes,"CEO, President & Chairman",1974,50,2024,2750000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.877242
+DJT,Mr. Scott  Glabe,General Counsel & Secretary,1984,40,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.877242
+DJT,Mr. Sandro  De Moraes,Chief Product Officer,1975,49,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.877242
+FVRR,Ms. Jinjin  Qian C.F.A.,Executive Vice President of Strategic Finance,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Mr. Matti  Yahav,Chief Marketing Officer,1977,47,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Gurit Kainnan Vardi,Executive VP & General Counsel,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Mr. Yossi  Levin,Chief Technology Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Mr. Shai  Wininger Gavish,Co-Founder,1974,50,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Ms. Sharon  Steiner,Chief Human Resources Officer,<NA>,<NA>,2024,467000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Ms. Hila  Klein,Chief Operating Officer,<NA>,<NA>,2024,657000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Mr. Ofer  Katz CPA,President & CFO,1972,52,2024,865000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+FVRR,Mr. Micha  Kaufman,"Co-Founder, CEO & Chairman of the Board",<NA>,<NA>,2024,1400000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.774332
+SNAP,Mr. Michael J. O'Sullivan J.D.,General Counsel & Secretary,1966,58,2024,1024947,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Mr. Evan T. Spiegel,"Co-Founder, CEO & Director",1991,33,2024,3298781,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Mr. Robert  Murphy,"Co-Founder, CTO & Director",1989,35,2024,1035164,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Mr. Derek  Andersen C.F.A.,Chief Financial Officer,1979,45,2024,1016540,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Ms. Rebecca  Morrow,Chief Accounting Officer & Controller,1974,50,2024,525013,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Ms. Kimberlee  Archer,Head Of Global Marketing - Augmented Reality & Camera,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Mr. David  Ometer,Head of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Ms. Julie  Henderson,Chief Communications Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Mr. Ankit  Goyle,Head of India - Marketing,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+SNAP,Mr. Scott  Withycombe,Chief People Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.705765
+PDD,Mr. Junyun  Xiao,Senior Vice President of Operation,1980,44,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+PDD,Mr. Lei  Chen,"General Counsel, Co-CEO & Chairman",1980,44,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+PDD,Mr. Jiazhen  Zhao,Co-CEO & Executive Director,1984,40,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+PDD,Ms. Jun  Liu,Vice President of Finance,1983,41,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+PDD,Mr. Zhenwei  Zheng,Senior Vice President of Product Development,1984,40,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+PDD,David  Liu,Vice President of Strategy,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+PDD,Peng  Cheng,IR Director,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.634403
+JD,Ms. Pang  Zhang,Chief Human Resources Officer,1988,36,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Qiangdong  Liu,Founder & Chairman,1973,51,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Ms. Ran  Xu CPA,CEO & Executive Director,1982,42,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Su  Shan,Chief Financial Officer,1982,42,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Ruiyu  Li,Senior Director of Investor Relations,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Chengfeng  He,Chief Compliance Officer,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Yanzhong  Yao,President of JD Retail Appliance & Home and Senior VP,1981,43,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Sean Shibiao  Zhang,Director of Investor Relations,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Mr. Daxue  Li,Advisor,1970,54,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+JD,Jia  Dong,Investor Relations of Associate Director,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.561908
+AVGO,Mr. Alan  Davidson,Chief Information Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Mr. Hock E. Tan,"President, CEO & Executive Director",1952,72,2024,2634542,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Ms. Kirsten M. Spears,CFO & Chief Accounting Officer,1964,60,2024,1054254,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Mr. Mark D. Brazeal J.D.,Chief Legal & Corporate Affairs Officer,1968,56,2024,1250843,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Dr. Charlie B. Kawwas Ph.D.,President of Semiconductor Solutions,1971,53,2024,1863054,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Mr. Ram  Velaga,Senior VP & GM of Core Switching Group,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Mr. Ji  Yoo,Director of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Ms. Jill  Turner,Vice President of Human Resources,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Mr. Frank  Ostojic,Senior VP & GM of ASIC Products Division,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+AVGO,Mr. Rich  Nelson,Senior VP & GM of Broadband Video Group,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.486265
+BA,Mr. Jesus  Malave Jr.,Executive VP & CFO,1969,55,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. Robert K. Ortberg,"President, CEO & Director",1960,64,2024,2388783,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. Brett C. Gerry J.D.,Chief Legal Officer & Executive VP of Global Compliance,1972,52,2024,1296198,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Ms. Stephanie F. Pope,Executive Vice President,1973,51,2024,2169804,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. D. Christopher Raymond,Executive VP & CEO of Boeing Global Services,1965,59,2024,1745305,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. Brad  McMullen,Senior Vice President of Commercial Sales & Marketing,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. Andrew  Ward CFA,Chief Investment Officer,1971,53,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. Eric  Hill,Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Mr. Darrin A. Hostetler,Chief Compliance Officer & VP of Global Compliance,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+BA,Ms. Ann M. Schmidt,Chief Communications & Brand Officer and Senior VP of Communications,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.413764
+PINS,Mr. Benjamin  Silbermann,Co-Founder & Non-Executive Chairman,1983,41,2024,90000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Mr. William J. Ready,CEO & Director,1980,44,2024,606000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 43492876}",2025-09-10T23:35:20.318256
+PINS,Ms. Julia Brau Donnelly,Chief Financial Officer,1983,41,2024,1609395,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Mr. Matthew  Madrigal,Chief Technology Officer,1976,48,2024,589698,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Ms. Wanjiku Juanita Walcott J.D.,Chief Legal & Business Affairs Officer and Company Secretary,1971,53,2024,606000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Mr. Malik  Ducard,Chief Content Officer,1974,50,2024,606000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Ms. Andrea L. Acosta,Chief Accounting Officer,1979,45,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Mr. Andrew  Somberg,VP of Investor Relations & Treasury,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Ms. Andrea Feddersen Mallard,Chief Marketing & Communications Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+PINS,Ms. Doniel N. Sutton,Chief People Officer,1974,50,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.318256
+BABA,Mr. Zeming  Wu,Chairman & Chief Executive Officer of Ele.me and Group Chief Technology Officer,1980,44,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Mr. Yongming  Wu,"CEO, Head of Core E-Commerce Business & Director",1975,49,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Mr. J. Michael  Evans,President & Director,1958,66,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Mr. Hong  Xu,Chief Financial Officer,1973,51,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Mr. Yuen Jen Yao,Senior VP & Head of Corporate Finance,<NA>,<NA>,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Mr. Joseph C.  Tsai,Executive Chairman,1964,60,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Lydia  Lu,Head of Investor Relations,<NA>,<NA>,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Ms. Siying  Yu,General Counsel,1974,50,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Ms. Fang  Jiang,Chief People Officer,1974,50,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+BABA,Mr. Xiaofeng  Shao,Group Executive Vice President,1966,58,2018,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.224062
+AMD,Mr. Forrest E. Norrod,Executive VP & GM of Data Center Solutions Business Unit,1965,59,2024,1428233,"{""maxAge"": 1, ""exercisedValue"": 9752057, ""unexercisedValue"": 4760712}",2025-09-10T23:35:20.142963
+AMD,Dr. Lisa T. Su Ph.D.,"Chair, President & CEO",1970,54,2024,3062598,"{""maxAge"": 1, ""exercisedValue"": 47792792, ""unexercisedValue"": 29753624}",2025-09-10T23:35:20.142963
+AMD,Ms. Jean X. Hu Ph.D.,"Executive VP, CFO, Treasurer & Interim Chief Accounting Officer",1963,61,2024,1429427,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 97947}",2025-09-10T23:35:20.142963
+AMD,Mr. Mark D. Papermaster,CTO and Executive VP of Technology & Engineering,1962,62,2024,1694362,"{""maxAge"": 1, ""exercisedValue"": 15503578, ""unexercisedValue"": 20029298}",2025-09-10T23:35:20.142963
+AMD,Ms. Ava M. Hahn J.D.,"Senior VP, General Counsel & Corporate Secretary",1973,51,2024,2978858,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.142963
+AMD,Mr. Keivan  Keshvari,Senior Vice President of Global Operations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.142963
+AMD,Mr. Hasmukh  Ranjan,Senior VP & Chief Information Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.142963
+AMD,Ms. Ruth  Cotter,Senior VP & Chief Administrative Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.142963
+AMD,Mr. Matthew D. Ramsay,Vice President of Financial Strategy & Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.142963
+AMD,Mr. Paul Darren Grasby,"Executive VP, Chief Sales Officer & President AMD EMEA",1970,54,2024,921473,"{""maxAge"": 1, ""exercisedValue"": 1077205, ""unexercisedValue"": 432646}",2025-09-10T23:35:20.142963
+BCS,Mr. Reid  Marsh,Global Chairman of Investment Banking & Acting Head of European Banking,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Ms. Angela Anna Cross,Group Finance Director & Executive Director,1970,54,2024,4445056,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Mr. Craig  Bright,Group Co-COO & Barclays Execution Services Co-CEO,1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Ms. Anne Marie Darling,Group Co-COO and Barclays Execution Services Co-CEO,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Ms. Susannah Hall Parden,Group Chief Accounting Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Mr. Coimbatore Sundararajan Venkatakrishnan Ph.D.,Group CEO & Executive Director,1966,58,2024,7312659,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Dr. Adam  Kelleher,Chief Data Scientist for Research,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Mr. Matthew  Fitzwater,Group Chief Compliance Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Mr. James  Lundie,"Managing Director and Head of Corporate Communications, Personal & Corporate Banking",<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+BCS,Mr. Stephen Victor Shapiro,Group General Counsel,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:20.061422
+COIN,Mr. Lawrence J. Brock,Chief People Officer,1972,52,2024,733450,"{""maxAge"": 1, ""exercisedValue"": 49971288, ""unexercisedValue"": 4145736}",2025-09-10T23:35:19.984076
+COIN,Ms. Emilie M. Choi,President & COO,1979,45,2024,956530,"{""maxAge"": 1, ""exercisedValue"": 142113584, ""unexercisedValue"": 241035664}",2025-09-10T23:35:19.984076
+COIN,Mr. Frederick Ernest Ehrsam III,Co-Founder & Director,1989,35,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.984076
+COIN,Ms. Alesia Jeanne Haas,Chief Financial Officer,1977,47,2024,733450,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 169371536}",2025-09-10T23:35:19.984076
+COIN,Mr. Paul  Grewal J.D.,Chief Legal Officer & Corporate Secretary,1972,52,2024,733450,"{""maxAge"": 1, ""exercisedValue"": 29013572, ""unexercisedValue"": 105375920}",2025-09-10T23:35:19.984076
+COIN,Mr. Brian  Armstrong,"Co-Founder, Chairman & CEO",1983,41,2024,7235090,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 1342752128}",2025-09-10T23:35:19.984076
+COIN,Jennifer N. Jones,Chief Accounting Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.984076
+COIN,Mr. Anil K. Gupta,Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.984076
+COIN,Mr. Faryar  Shirzad,Chief Policy Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.984076
+COIN,Dr. Daniel  Seifert,VP & Regional MD of EMEA,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.984076
+SBUX,Mr. Brian R. Niccol,Chairman & CEO,1974,50,2024,5509904,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Mr. Bradley E. Lerman J.D.,Executive VP & Chief Legal Officer,1957,67,2024,1289888,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Mr. Brady  Brewer,Chief Executive Officer of Starbucks International,1973,51,2024,1126296,"{""maxAge"": 1, ""exercisedValue"": 1390184, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Ms. Catherine R. Smith CPA,"Executive VP, CFO & Principal Accounting Officer",1964,60,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Mr. Mike  Grams,EVP & COO,1970,54,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Mr. Bao Giang Val Bauduin,Senior VP of Corporate Finance,1976,48,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Ms. Deborah L. Hall Lefevre,Executive VP & CTO,1968,56,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Ms. Tiffany  Willis CPA,Senior Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Mr. Andy  Adams,Senior Vice President of Global Growth & Concepts,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+SBUX,Ms. Michelle  Burns,Executive Vice President of Global Coffee & Sustainability,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.916273
+NKE,Mr. Mark G. Parker,Executive Chairman,1956,68,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Mr. Elliott J. Hill,"CEO, President & Director",1964,60,2025,5297497,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Mr. Matthew  Friend,Executive VP & CFO,1978,46,2025,1267250,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 107260}",2025-09-10T23:35:19.841455
+NKE,Mr. Robert  Leinwand,EVP & Chief Legal Officer,<NA>,<NA>,2025,816877,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 52270}",2025-09-10T23:35:19.841455
+NKE,Ms. Ann M. Miller,Executive VP & Global Sports Marketing,1975,49,2025,1137914,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Mr. Craig Anthony Williams,Executive VP & Chief Commercial Officer,1970,54,2025,1267250,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Mr. Philip H. Knight,Co-Founder & Chairman Emeritus,1938,86,2025,3069594,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Dr. Muge Erdirik Dogan,Executive VP & CTO,<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Mr. Michael  Gonda,Executive VP & Chief Communications Officer,<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+NKE,Ms. Johanna  Nielsen,VP of Controlling & Principal Accounting Officer,1978,46,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.841455
+MCD,Mr. Joseph  Erlinger,EVP & President of McDonald's USA,1974,50,2024,2361042,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 15877165}",2025-09-10T23:35:19.760973
+MCD,Mr. Christopher J. Kempczinski,"Chairman President, & CEO",1969,55,2024,3195065,"{""maxAge"": 1, ""exercisedValue"": 1792141, ""unexercisedValue"": 47533376}",2025-09-10T23:35:19.760973
+MCD,Mr. Ian Frederick Borden CPA,Executive VP & Global CFO,1969,55,2024,1561322,"{""maxAge"": 1, ""exercisedValue"": 1473736, ""unexercisedValue"": 21364700}",2025-09-10T23:35:19.760973
+MCD,Ms. Desiree A. Ralls-Morrison J.D.,Executive VP & Global Chief Legal Officer,1967,57,2024,1228662,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 1399144}",2025-09-10T23:35:19.760973
+MCD,Ms. Gillian  McDonald,Executive Vice President & Global Chief Restaurant Experience Officer,1966,58,2024,1299644,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 231617}",2025-09-10T23:35:19.760973
+MCD,Ms. Lauren B. Elting CPA,"VP, Principal Accounting Officer & Corporate Controller",1982,42,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.760973
+MCD,Mr. Brian S. Rice,Executive VP & Global Chief Information Officer,1963,61,2024,834294,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.760973
+MCD,Mr. Dexter P. Congbalay,Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.760973
+MCD,Ms. Morgan  Flatley,Executive VP and Global Chief Marketing Officer & New Business Ventures,1975,49,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.760973
+MCD,Ms. Tiffanie L. Boyd,Executive VP & Global Chief People Officer,1973,51,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.760973
+WMT,Mr. Christopher  Nicholas,"Executive VP, President & CEO of Sam's Club U.S.",1978,46,2025,3255161,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Mr. John David Rainey Jr.,Executive VP & CFO,1971,53,2025,3534727,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Mr. Suresh  Kumar Ph.D.,"Global CTO, Chief Development Officer & Executive VP",1966,58,2025,3709340,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Mr. John R. Furner,"Executive VP, CEO & President of Walmart US",1975,49,2025,4327422,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Ms. Kathryn J. McLay,"Executive VP, President & CEO of Walmart International",1974,50,2025,4095229,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Mr. C. Douglas McMillon,"President, CEO & Director",1966,58,2025,6249434,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Ms. Stephanie  Wissink,Senior Vice President of Investor Relations,<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Ms. Elisebeth B. Collins,"Executive VP, Global Chief Ethics & Compliance Officer and Special Counsel",<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Ms. Allyson  Park,Senior VP & Chief Communications Officer,<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+WMT,Ms. Rachel L. Brand J.D.,"Executive VP of Global Governance, Chief Legal Officer & Corporate Secretary",1974,50,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.682476
+KO,Ms. Erin L. May,"Senior VP, Chief Accounting Officer & Controller",1980,44,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.595612
+KO,Mr. John  Murphy,President & CFO,1962,62,2024,4489605,"{""maxAge"": 1, ""exercisedValue"": 1204753, ""unexercisedValue"": 11168569}",2025-09-10T23:35:19.595612
+KO,Mr. Henrique  Braun,EVP & Chief Operating Officer,1968,56,2024,2888351,"{""maxAge"": 1, ""exercisedValue"": 1214311, ""unexercisedValue"": 4229513}",2025-09-10T23:35:19.595612
+KO,Mr. Manuel Arroyo Prieto,Executive VP & Global chief Marketing Officer,1967,57,2024,9554033,"{""maxAge"": 1, ""exercisedValue"": 195832, ""unexercisedValue"": 4816468}",2025-09-10T23:35:19.595612
+KO,Ms. Jennifer Kay Mann,Executive VP & President of North America Operating Unit,1972,52,2024,2293472,"{""maxAge"": 1, ""exercisedValue"": 3370630, ""unexercisedValue"": 2234684}",2025-09-10T23:35:19.595612
+KO,Mr. James Robert B. Quincey,Chairman & CEO,1965,59,2024,8868306,"{""maxAge"": 1, ""exercisedValue"": 4077817, ""unexercisedValue"": 35975472}",2025-09-10T23:35:19.595612
+KO,Ms. Stacy Lynn  Apter,"Senior VP, Treasurer & Head of Corporate Finance",1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.595612
+KO,Ms. Nancy W. Quan,Executive VP and Global Chief Technical & Innovation Officer,1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.595612
+KO,Mr. Neeraj S. Tolmare,Senior VP & Chief Information Officer,1974,50,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.595612
+KO,Ms. Robin  Halpern,VP & Head of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.595612
+BX,"Mr. Stephen Allen Schwarzman B.A., M.B.A.","Chairman, CEO & Co-Founder",1947,77,2024,84027074,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Michael S. Chae J.D.,CFO & Vice Chairman,1968,56,2024,5574642,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Jonathan D. Gray CIMA,"General Partner, President, COO & Director",1969,55,2024,44491580,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Vikrant  Sawhney J.D.,Chief Administrative Officer & Global Head of Institutional Client Solutions,<NA>,<NA>,2024,8921538,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. John Gary Finley J.D.,Chief Legal Officer,1957,67,2024,5776059,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Joseph Patrick Baratta,Global Head of Private Equity Strategies & Director,1971,53,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. William J. Stein,Senior Managing Director of Real Estate- New York,1962,62,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Robert Christopher Heady,"Senior MD - Hong Kong, Head of Asia Real Estate & Chairman of Asia Pacific",<NA>,<NA>,2024,4932575,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Mustafa Mohsin Siddiqui,Former Senior MD of BXMA - New York & Co-Head of Strategic Capital Group,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+BX,Mr. Seth A. Meisel,Senior Managing Director of Private Equity - New York,1973,51,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.532276
+C,Mr. David R. Bailin,Chief Investment Officer & Global Head of Investments,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Tim  Ryan,Head of Technology & Business Enablement,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Achintya  Mangla,Head of Investment Banking Financing,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Ms. Nicole  Giles,Chief Accounting Officer & Controller,1972,52,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Anand  Selvakesari,Chief Operating Officer,1968,56,2024,8183176,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Viswas  Raghavan,Executive Vice Chairman & Head of Banking,1966,58,2024,9763474,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Andrew Mason Sieg,Head of Wealth,1968,56,2024,8534693,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Andrew J. Morton,Head of Markets,1962,62,2024,13488622,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Mr. Mark A.L. Mason,Chief Financial Officer,1970,54,2024,6652700,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+C,Ms. Jane Nind Fraser Ph.D.,CEO & Director,1968,56,2024,6470700,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.461672
+BLK,Mr. J. Richard Kushel,Senior MD & Head of the Portfolio Management Group,1967,57,2024,3993770,"{""maxAge"": 1, ""exercisedValue"": 5255915, ""unexercisedValue"": 34350520}",2025-09-10T23:35:19.388078
+BLK,Mr. Laurence Douglas Fink,"Founder, CEO & Chairman",1952,72,2024,12618443,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+BLK,Mr. Robert Steven Kapito,President & Member of Board of Directors,1956,68,2024,8483737,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+BLK,Mr. Martin S. Small,"Senior MD, CFO & Global Head of Corporate Strategy",1976,48,2024,4154150,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 13837516}",2025-09-10T23:35:19.388078
+BLK,Mr. Robert Lawrence Goldstein,Senior MD & COO,1974,50,2024,4840270,"{""maxAge"": 1, ""exercisedValue"": 28756620, ""unexercisedValue"": 27724146}",2025-09-10T23:35:19.388078
+BLK,Mr. Adebayo O. Ogunlesi J.D.,"Founding Partner, Chairman & CEO of Global Infrastructure Partners, Senior MD and Director",1954,70,2024,4290011,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+BLK,Dr. Bennett W. Golub Ph.D.,Co-Founder,1958,66,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+BLK,Mr. Mark  McKenna,"Founder, MD, Global Head of Event Driven Equity Strategies & Portfolio Manager",<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+BLK,Dr. Jeff  Shen Ph.D.,"MD, Co-CIO & Co-Head of Systematic Active Equity (SAE)",<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+BLK,Mr. Neeraj  Seth,"MD, Chief Investment Officer & Head of Asian credit  Singapore",<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.388078
+JPM,Ms. Elena A. Korablina,"MD, Firmwide Controller & Principal Accounting Officer",1974,50,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Mr. Jeremy  Barnum,Executive VP & CFO,1973,51,2024,7535000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Ms. Mary Callahan Erdoes,Chief Executive Officer of Asset & Wealth Management and Executive VP,1967,57,2024,12037181,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Mr. Troy Larry Rohrbaugh,Co- CEO of Commercial & Investment Bank,1970,54,2024,10205373,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Ms. Jennifer A. Piepszak,Chief Operating Officer,1971,53,2024,7855000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Mr. James  Dimon,Chairman & CEO,1956,68,2024,8132636,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Mr. Jerry  Lee,Global Chair of Investment Banking,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Ms. Lori Ann Beer,Global Chief Information Officer,1968,56,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Mr. Mikael  Grubb,Head of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+JPM,Mr. Sripada  Shivananda,Chief Technology Officer,1973,51,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.317940
+GS,Mr. J. D. Gardner,Director,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. John E. Waldron,"President, COO & Director",1970,54,2024,14464600,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. Denis P. Coleman III,Chief Financial Officer,1975,49,2024,10435693,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Ms. Kathryn H. Ruemmler,"Chief Legal Officer, Secretary & General Counsel",1972,52,2024,9329689,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. John F. W. Rogers,"Executive VP, Lead Director & Secretary to the Board of Directors",1957,67,2024,7490528,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. David M. Solomon,Chairman & CEO,1962,62,2024,11450298,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Ms. Sheara J. Fredman,Controller & Chief Accounting Officer,1976,48,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. Marco  Argenti,Partner & Chief Information Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. Michael J. Richman J.D.,Chief Compliance Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+GS,Mr. Francois-Xavier  De Mallmann,Chair of Goldman Sachs EMEA & Chair of Investment Banking.,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.245743
+IBKR,Dr. Thomas A. J. Frank Ph.D.,Executive Vice President,1956,68,2024,1075863,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+IBKR,Mr. Thomas Pechy Peterffy,Founder & Chairman,1944,80,2024,750000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+IBKR,Mr. Milan  Galik,"President, CEO & Director",1967,57,2024,4808150,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+IBKR,Mr. Paul Jonathan Brody,"CFO, Treasurer, Secretary & Director",1960,64,2024,3267736,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+IBKR,Mr. Denis  Mendonca,Chief Accounting Officer,1975,49,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+IBKR,Ms. Nancy Enslein Stuebe,Director of Investor Relations,1964,60,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+IBKR,Mr. David Eric  Friedland,Managing Director of Asia Pacific Operations,1964,60,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.178182
+TIGR,Mr. Aron  Lee,Head of IR,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.113499
+TIGR,Mr. Fei  Zeng,CFO & Director,1981,43,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.113499
+TIGR,Mr. Tianhua  Wu,Chairman & CEO,1986,38,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.113499
+HOOD,"Mr. Daniel M. Gallagher Jr., J.D.","Chief Legal, Compliance & Corporate Affairs Officer",1973,51,2024,1357260,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 5933457}",2025-09-10T23:35:19.049966
+HOOD,Mr. Vladimir  Tenev,"Co-Founder, President, CEO & Chairman of the Board",1987,37,2024,2137451,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Mr. Baiju Prafulkumar Bhatt,Co-Founder & Director,1985,39,2024,39010,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Mr. Jason  Warnick CPA,Chief Financial Officer,1972,52,2024,1332234,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 21931000}",2025-09-10T23:35:19.049966
+HOOD,Mr. Jeffrey  Pinner,Chief Technology Officer,1985,39,2024,1510323,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Ms. Nora  Chan,Director of Communications,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Mr. Steven M. Quirk,Chief Brokerage Officer,1965,59,2024,1344136,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Mr. Irvin  Sha,Head of Investor Relations & Capital Markets,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Mr. Chris  Koegel,Vice President of Corporate Finance & Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+HOOD,Ms. Connie  Schan,Chief People Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:19.049966
+FUTU,Mr. Li  Xu,Senior Vice President,1983,41,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.982547
+FUTU,Mr. Daniel  Yuan,Chief of Staff & Head of Investor Relations,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.982547
+FUTU,Mr. Yu  Chen,Chief Financial Officer,1976,48,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.982547
+FUTU,Mr. Hua  Li,"Founder, Chairman & CEO",1977,47,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.982547
+V,Mr. Paul D. Fabara,Chief Risk & Client Services Officer,1966,58,2024,2250387,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 13679670}",2025-09-10T23:35:18.909744
+V,Mr. Ryan M. McInerney,"President, CEO & Director",1975,49,2024,5752820,"{""maxAge"": 1, ""exercisedValue"": 13730578, ""unexercisedValue"": 66416804}",2025-09-10T23:35:18.909744
+V,Mr. Christopher  Suh,Chief Financial Officer,1970,54,2024,2697921,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.909744
+V,Mr. Rajat  Taneja,President of Technology,1964,60,2024,3885797,"{""maxAge"": 1, ""exercisedValue"": 12958072, ""unexercisedValue"": 46714264}",2025-09-10T23:35:18.909744
+V,Ms. Kelly Mahon Tullier J.D.,"Vice Chair, Chief People & Corporate Affairs Officer and Corporate Secretary",1966,58,2024,2711804,"{""maxAge"": 1, ""exercisedValue"": 5177602, ""unexercisedValue"": 22370272}",2025-09-10T23:35:18.909744
+V,Ms. Julie B. Rottenberg J.D.,General Counsel,1969,55,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.909744
+V,Mr. Peter  Andreski,"Senior VP, Global Corporate Controller & Chief Accounting Officer",1973,51,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.909744
+V,Ms. Jennifer  Como,Head of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.909744
+V,Mr. Frank  Cooper III,Chief Marketing Officer,1964,60,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.909744
+V,Mr. Oliver  Jenkyn,Group President of Global Markets,1973,51,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.909744
+GPN,Mr. David M. Sheffield,Executive VP & Chief Accounting Officer,1962,62,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Mr. Robert M. Cortopassi,President & COO,1976,48,2024,1623213,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Mr. Joshua J. Whipple,Senior EVP & CFO,1973,51,2024,1698945,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Mr. Cameron M. Bready CPA,CEO & Director,1972,52,2024,3131552,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 1269700}",2025-09-10T23:35:18.827083
+GPN,Mr. David Lawrence Green Esq.,Chief Administrative Officer,1968,56,2024,1597226,"{""maxAge"": 1, ""exercisedValue"": 573719, ""unexercisedValue"": 517870}",2025-09-10T23:35:18.827083
+GPN,Ms. Dara  Steele-Belkin,General Counsel & Corporate Secretary,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Mr. Ryan  Loy,Chief Information Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Ms. Winnie  Smith C.F.A.,Senior Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Mr. Gaylon M. Jowers Jr.,President of Issuer Solutions,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+GPN,Mr. David  Rumph,Chief Transformation & Strategy Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.827083
+MA,Mr. Sachin  Mehra,Chief Financial Officer,1971,53,2024,2953621,"{""maxAge"": 1, ""exercisedValue"": 5261475, ""unexercisedValue"": 12075489}",2025-09-10T23:35:18.760724
+MA,Mr. Timothy Henry Murphy J.D.,Vice Chair,1968,56,2024,2286695,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 5572874}",2025-09-10T23:35:18.760724
+MA,Mr. Craig E. Vosburg,Chief Services Officer,1967,57,2024,2323225,"{""maxAge"": 1, ""exercisedValue"": 18232652, ""unexercisedValue"": 26102528}",2025-09-10T23:35:18.760724
+MA,Ms. P. Raj Seshadri,Chief Commercial Payments Officer,1966,58,2024,1931834,"{""maxAge"": 1, ""exercisedValue"": 5098017, ""unexercisedValue"": 2440844}",2025-09-10T23:35:18.760724
+MA,Ambassador Richard R. Verma J.D.,Chief Administrative Officer,1969,55,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.760724
+MA,Mr. Devin  Corr,Executive Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.760724
+MA,Ms. Tiffany M. Hall,General Counsel,1979,45,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.760724
+MA,Mr. Raja  Rajamannar,Chief Marketing & Communications Officer,1962,62,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.760724
+MA,Ms. Ruosi  Wan,"Executive Vice President of Strategy, Corporate Development and M&A",<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.760724
+MA,Mr. Michael  Miebach,CEO & Director,1968,56,2024,5991496,"{""maxAge"": 1, ""exercisedValue"": 8514586, ""unexercisedValue"": 30364464}",2025-09-10T23:35:18.759578
+AXP,Mr. Douglas E. Buckminster,Vice Chairman,1961,63,2024,8493728,"{""maxAge"": 1, ""exercisedValue"": 18522064, ""unexercisedValue"": 37752528}",2025-09-10T23:35:18.687490
+AXP,Mr. Stephen Joseph Squeri,Chairman & CEO,1960,64,2024,12888802,"{""maxAge"": 1, ""exercisedValue"": 31868184, ""unexercisedValue"": 34923216}",2025-09-10T23:35:18.687490
+AXP,Mr. Christophe Y. Le Caillec,Chief Financial Officer,1967,57,2024,4855030,"{""maxAge"": 1, ""exercisedValue"": 1904410, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Ms. Laureen E. Seeger,Chief Legal Officer,1962,62,2024,6155660,"{""maxAge"": 1, ""exercisedValue"": 5433533, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Mr. Anre D. Williams,Senior Executive Advisor,1966,58,2024,7265071,"{""maxAge"": 1, ""exercisedValue"": 16317564, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Ms. Elizabeth  Rutledge,Chief Marketing Officer,1962,62,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Mr. Ravikumar  Radhakrishnan,Executive VP & CIO,1972,52,2024,7427926,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Ms. Lisa  Marchese,Executive Vice President of Corporate Development & Strategic Planning Group,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Ms. Glenda G. McNeal,Chief Partner Officer,1961,63,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+AXP,Ms. Denise  Pickett,President of Enterprise Shared Services,1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.687490
+PYPL,Mr. Aaron J. Webster,Executive VP & Global Chief Risk Officer,1980,44,2024,4578711,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Alex  Chriss,"President, CEO & Director",1978,46,2024,6658527,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Ms. Jamie S. Miller,Executive VP and Chief Financial & Operating Officer,1969,55,2024,5629425,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Diego  Scotti,Executive VP & GM of Consumer Group,1973,51,2024,3629425,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Ms. Suzan Bulyaba Kereere,President of Global Markets,1966,58,2024,8629425,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Christopher  Natali,Chief Accounting Officer,1978,46,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Srinivasan  Venkatesan,Chief Technology Officer,1971,53,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Steven Eric Winoker,Chief Investor Relations Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Bimal  Patel,General Counsel,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+PYPL,Mr. Kausik  Rajgopal,"Executive Vice President of Strategy, Corporate Development & Partnerships",1974,50,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.616984
+ZK,Mr. Jing  Yuan,Chief Financial Officer,1985,39,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Mr. Shufu  Li,Founder & Chairman of the Board,1964,60,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Mr. Sheng Yue  Gui,Co-Founder & Director,1964,60,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Mr. Dong Hui  Li,Co-Founder & Director,1970,54,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Mr. Cong Hui  An,"Co-founder, CEO & Director",1970,54,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Mr. Yuhui  Zhao,Vice President,1972,52,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Ms. Yun  Xu,Vice President,1982,42,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+ZK,Dr. Ling  Zhu,Vice President,1981,43,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.541515
+LI,Janet  Chang,Director of Investor Relations,<NA>,<NA>,2023,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Mr. Tie  Li,CFO & Executive Director,1978,46,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Mr. Xiang  Li,"Founder, Executive Chairman & CEO",1981,43,2023,268990,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Mr. Yan  Xie,Senior VP & CTO,1980,44,2023,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Mr. Donghui  Ma,President & Executive Director,1975,49,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Kobe  Wang,Head of Capital Markets,<NA>,<NA>,2023,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Mr. Liangjun  Zou,Senior Vice President,1977,47,2023,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Mr. Yang  Wang,Joint Company Secretary,<NA>,<NA>,2023,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+LI,Ms. Yee Wa  Lau,Joint Company Secretary,1973,51,2023,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.466467
+XPEV,Mr. Yonghai  Chen,Vice President of Product Planning,1982,42,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Mr. Charles  Zhang,Vice President of Corporate Finance and BW Projects,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Mr. Yeqing  Zheng,Company Secretary,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Alex  Xie,Head of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Mr. Jiaming  Wu,Vice President of Finance & Accounting,1985,39,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Ms. Fengying  Wang,President,1971,53,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Dr. Hongdi  Gu,Honorary Vice Chairman of the Board & Co-President,1974,50,2024,1202881,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+XPEV,Mr. Xiaopeng  He,"Co-Founder, Chairman & CEO",1978,46,2024,235051,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.388896
+NIO,Liu  Fang,General Counsel,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Bin  Li,"Co-Founder, Chairman & CEO",1974,50,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Lihong  Qin,"Co-Founder, President & Director",1973,51,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Rui  Chen,Head of Investor Relations,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Yu  Qu,Chief Financial Officer,1979,45,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Feng  Shen,Executive Vice President,1965,59,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Xin  Zhou,Executive Vice President,1971,53,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Mr. Ganesh V. Iyer,Chief Executive Officer of NIO U.S.,1968,56,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+NIO,Jade  Wei,Senior Director of Investor Relations,<NA>,<NA>,<NA>,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.325129
+MSFT,Ms. Carolina  Dybeck Happe,Executive VP & COO,1972,52,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Mr. Satya  Nadella,Chairman & CEO,1967,57,2024,7869791,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Mr. Bradford L. Smith LCA,President & Vice Chairman,1959,65,2024,4755618,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Ms. Amy E. Hood,Executive VP & CFO,1972,52,2024,4704250,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Mr. Judson B. Althoff,Executive VP & Chief Commercial Officer,1973,51,2024,4534974,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Ms. Alice L. Jolla,Corporate VP & Chief Accounting Officer,1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Jonathan  Neilson,Vice President of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Mr. Hossein  Nowbar,Chief Legal Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Mr. Frank X. Shaw,Chief Communications Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+MSFT,Mr. Takeshi  Numoto,Executive VP & Chief Marketing Officer,1971,53,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.250947
+NVDA,Mr. Chris A. Malachowsky,Co-Founder,<NA>,<NA>,2025,320000,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Ms. Colette M. Kress,Executive VP & CFO,1967,57,2025,1512641,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Ms. Debora  Shoquist,Executive Vice President of Operations,1955,69,2025,1379071,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Mr. Timothy S. Teter J.D.,"Executive VP, General Counsel & Secretary",1967,57,2025,1362989,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Mr. Ajay K. Puri,Executive Vice President of Worldwide Field Operations,1955,69,2025,2313851,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Mr. Jen-Hsun  Huang,"Co-Founder, CEO, President & Director",1963,61,2025,11054945,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Mr. Donald F. Robertson Jr.,VP & Chief Accounting Officer,1969,55,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Mr. Toshiya  Hari,Vice President of Investor Relations & Strategic Finance,<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Ms. Mylene  Mangalindan,VP of Corporate Communications,<NA>,<NA>,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+NVDA,Prof. William J. Dally Ph.D.,Chief Scientist & Senior VP of Research,1961,63,2025,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.182020
+AMZN,Mr. Matthew S. Garman,Chief Executive Officer of Amazon Web Series,1977,47,2024,384275,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Mr. Andrew R. Jassy,"President, CEO & Director",1968,56,2024,1596889,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Mr. Brian T. Olsavsky,Senior VP & CFO,1964,60,2024,371900,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Mr. David A. Zapolsky J.D.,"Senior VP, Chief Global Affairs & Legal Officer",1964,60,2024,371900,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Mr. Douglas J. Herrington,Chief Executive Officer of Worldwide Amazon Stores,1967,57,2024,386435,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Mr. Jeffrey P. Bezos,Founder & Executive Chairman,1964,60,2024,1681840,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Ms. Shelley L. Reynolds,"VP, Worldwide Controller & Principal Accounting Officer",1965,59,2024,163200,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Dr. Werner  Vogels,Chief Technology Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Mr. Dave  Fildes,Director of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+AMZN,Ms. Anuradha  Aggarwal,CMO & Director of User Growth,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.104287
+META,Mr. Mark Elliot Zuckerberg,"Founder, Chairman & CEO",1984,40,2024,27219874,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Ms. Susan J. S. Li,Chief Financial Officer,1986,38,2024,1948846,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Javier  Olivan,Chief Operating Officer,1977,47,2024,3835042,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Andrew  Bosworth,Chief Technology Officer,1982,42,2024,1923184,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Christopher K. Cox,Chief Product Officer,1983,41,2024,1937677,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Dana  White,Independent Director,<NA>,<NA>,2024,272,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Aaron A. Anderson,Chief Accounting Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Atish  Banerjea,Chief Information Officer,1966,58,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Ms. Jennifer G. Newstead J.D.,Chief Legal Officer,1970,54,2024,3079624,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+META,Mr. Henry T. A. Moniz,Chief Compliance Officer,1965,59,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:18.039116
+AAPL,Mr. Sabih  Khan,Chief Operating Officer,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Ms. Deirdre  O'Brien,Chief People Officer & Senior VP of Retail,1967,57,2024,5022182,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Mr. Jeffrey E. Williams,"Senior Vice President of Design, Watch, & Health",1964,60,2024,5020737,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Mr. Kevan  Parekh,Senior VP & CFO,1972,52,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Ms. Katherine L. Adams,"Senior VP, General Counsel & Secretary",1964,60,2024,5022182,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Mr. Chris  Kondo,Senior Director of Corporate Accounting,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Suhasini  Chandramouli,Director of Investor Relations,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Ms. Kristin Huguet Quayle,Vice President of Worldwide Communications,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Mr. Greg  Joswiak,Senior Vice President of Worldwide Marketing,<NA>,<NA>,2024,<NA>,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+AAPL,Mr. Timothy D. Cook,CEO & Director,1961,63,2024,16520856,"{""maxAge"": 1, ""exercisedValue"": 0, ""unexercisedValue"": 0}",2025-09-10T23:35:17.971101
+,,,1984,40,,,,

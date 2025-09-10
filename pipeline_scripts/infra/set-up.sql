@@ -72,11 +72,11 @@ CREATE TABLE companies (
   industry              TEXT,
   industry_key          TEXT,
   long_business_summary TEXT,
-  full_time_employees   INTEGER,
+  full_time_employees   NUMERIC,
   founded_year          INTEGER,
   market_cap            NUMERIC(30,2),
-  float_shares          BIGINT,
-  shares_outstanding    BIGINT,
+  float_shares          NUMERIC,
+  shares_outstanding    NUMERIC,
   beta                  NUMERIC(10,6),
   book_value            NUMERIC(20,6),
   dividend_rate         NUMERIC(20,8),
@@ -141,8 +141,8 @@ CREATE TABLE financials (
   capital_expenditures NUMERIC(30,2),
   free_cash_flow       NUMERIC(30,2),
 
-  shares_outstanding   BIGINT,
-  shares_float         BIGINT,
+  shares_outstanding   NUMERIC,
+  shares_float         NUMERIC,
   market_cap           NUMERIC(30,2),
   price_to_earnings    NUMERIC(18,8),
   forward_pe           NUMERIC(18,8),
@@ -195,8 +195,8 @@ CREATE POLICY "allow_select_content" ON content
 -- Allow admin users to INSERT rows
 CREATE POLICY "admins_insert_content" ON content
   FOR INSERT
-  USING ( (SELECT is_admin FROM users WHERE user_id = auth.uid()::uuid) IS TRUE )
-  WITH CHECK ( (SELECT is_admin FROM users WHERE user_id = auth.uid()::uuid) IS TRUE );
+  WITH CHECK (auth.role() = 'admin');
+
 
 -- Allow admin users to UPDATE rows
 CREATE POLICY "admins_update_content" ON content
@@ -253,3 +253,11 @@ CREATE INDEX IF NOT EXISTS ix_content_ticker ON content(ticker);
 -- =========================================================
 -- End of reset + setup script (admin-edit-only content)
 -- =========================================================
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
+
+GRANT ALL ON TABLE companies TO service_role;
+GRANT ALL ON TABLE company_officers TO service_role;
+GRANT ALL ON TABLE financials TO service_role;
+
