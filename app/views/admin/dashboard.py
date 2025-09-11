@@ -49,6 +49,6 @@ def render():
             r = requests.delete(del_url, headers=headers)
             if r.status_code in (200,204):
                 st.success("Deleted")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error(f"Delete failed: {r.status_code} {r.text}")

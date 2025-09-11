@@ -12,18 +12,24 @@ def route():
     token = st.session_state.get("access_token")
     profile = st.session_state.get("profile")
 
+    # --- If not logged in, show landing page ---
     if not user:
         landing.render()
         return
 
-    if not profile:
-        try:
-            profile = get_profile(user.get("id") or user.get("user_metadata", {}).get("id") or user.get("sub"), access_token=token)
-        except Exception as e:
-            st.error(f"Failed to load profile: {e}")
-            profile = None
-        st.session_state["profile"] = profile
+    # --- Top navigation bar with user info + logout ---
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown(
+            f"👋 Logged in as **{user.get('user_metadata', {}).get('email') or user.get('email')}**"
+        )
+    with col2:
+        if st.button("🚪 Log out"):
+            for key in ["user", "access_token", "profile"]:
+                st.session_state.pop(key, None)
+            st.rerun()
 
+    # --- Tabs ---
     tabs = ["Home", "Stock Analysis", "News", "Watchlist"]
     if profile and profile.get("is_admin"):
         tabs.append("Admin Dashboard")

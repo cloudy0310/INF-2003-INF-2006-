@@ -6,14 +6,16 @@ from supabase import create_client
 import requests
 from typing import Optional, Tuple
 
-# load .env if present
+# Load .env if present
 load_dotenv()
 
 def _get_env_keys() -> Tuple[Optional[str], Optional[str], Optional[str]]:
-    # prefer Streamlit secrets if present
+    """Return SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY"""
     supabase_url = None
     supabase_key = None
     service_role = None
+
+    # Streamlit secrets take precedence
     if hasattr(st, "secrets"):
         supabase_url = st.secrets.get("SUPABASE_URL") or supabase_url
         supabase_key = st.secrets.get("SUPABASE_ANON_KEY") or supabase_key
@@ -26,29 +28,39 @@ def _get_env_keys() -> Tuple[Optional[str], Optional[str], Optional[str]]:
 
 def get_client():
     """
-    Return a create_client(supabase_url, anon_key) or None when not configured.
-    Use this client for high-level supabase-py calls. Don't use service_role here.
+    Return supabase client (supabase-py) using anon key.
+    Service role should not be used here.
     """
     url, key, _ = _get_env_keys()
     if not url or not key:
         return None
     return create_client(url, key)
 
-def get_auth_headers(access_token: Optional[str]):
+def get_auth_headers(access_token: Optional[str] = None):
     """
-    Returns headers for REST calls. If access_token provided, use it as Bearer token.
-    Otherwise fall back to anon key for read-only requests.
+    Returns headers for REST calls:
+    - Include 'apikey' always (Supabase requires it)
+    - Include 'Authorization: Bearer <token>' if access_token provided
     """
-    url, anon_key, _ = _get_env_keys()
-    headers = {"apikey": anon_key} if anon_key else {}
+    _, anon_key, _ = _get_env_keys()
+    if not anon_key:
+        raise RuntimeError("SUPABASE_ANON_KEY not configured")
+
+    headers = {
+        "apikey": anon_key,
+        "Content-Type": "application/json"
+    }
+
     if access_token:
         headers["Authorization"] = f"Bearer {access_token}"
-    headers["Content-Type"] = "application/json"
+
     return headers
+
 
 def rest_get(table: str, params: str = "", access_token: Optional[str] = None):
     """
-    GET from REST endpoint: table is e.g. "content?select=*" or "watchlists?user_id=eq.<id>"
+    GET from REST endpoint: table is e.g. "content" or "watchlists"
+    Params is optional query string: "?select=*&order=published_at.desc"
     """
     url, _, _ = _get_env_keys()
     if not url:
@@ -59,17 +71,25 @@ def rest_get(table: str, params: str = "", access_token: Optional[str] = None):
     r.raise_for_status()
     return r.json()
 
+
 def rest_post(table: str, payload: dict, access_token: Optional[str] = None):
+    """
+    POST to REST endpoint
+    Returns response JSON if successful.
+    """
     url, _, _ = _get_env_keys()
     if not url:
         raise RuntimeError("SUPABASE_URL not configured")
     full = f"{url}/rest/v1/{table}"
     headers = get_auth_headers(access_token)
-    r = requests.post(full, headers=headers, json=payload)
-    return r
+    headers["Prefer"] = "return=representation"
+    resp = requests.post(full, headers=headers, json=payload)
+    resp.raise_for_status()
+    return resp.json()
 
-def rest_delete(table: str, filter_query: str, access_token: Optional[str] = None):
+def rest_patch(table: str, filter_query: str, payload: dict, access_token: Optional[str] = None):
     """
+    PATCH (update) rows matching filter_query
     filter_query example: "id=eq.<uuid>"
     """
     url, _, _ = _get_env_keys()
@@ -77,5 +97,22 @@ def rest_delete(table: str, filter_query: str, access_token: Optional[str] = Non
         raise RuntimeError("SUPABASE_URL not configured")
     full = f"{url}/rest/v1/{table}?{filter_query}"
     headers = get_auth_headers(access_token)
-    r = requests.delete(full, headers=headers)
-    return r
+    headers["Prefer"] = "return=representation"
+    resp = requests.patch(full, headers=headers, json=payload)
+    resp.raise_for_status()
+    return resp.json()
+
+def rest_delete(table: str, filter_query: str, access_token: Optional[str] = None):
+    """
+    DELETE rows matching filter_query
+    filter_query example: "id=eq.<uuid>"
+    """
+    url, _, _ = _get_env_keys()
+    if not url:
+        raise RuntimeError("SUPABASE_URL not configured")
+    full = f"{url}/rest/v1/{table}?{filter_query}"
+    headers = get_auth_headers(access_token)
+    headers["Prefer"] = "return=representation"
+    resp = requests.delete(full, headers=headers)
+    resp.raise_for_status()
+    return resp.json()

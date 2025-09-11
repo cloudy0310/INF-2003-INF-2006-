@@ -1,17 +1,11 @@
-# app/views/user/home.py
 import streamlit as st
-from app.supabase_helpers import rest_get
+from app.api import content
 
 def render():
     st.title("Home — Contents")
     token = st.session_state.get("access_token")
-    try:
-        # Show only published content
-        contents = rest_get("content?select=*&order=published_at.desc", access_token=token)
-    except Exception as e:
-        st.error(f"Failed to load content: {e}")
-        contents = []
 
+    contents = content.get_latest_content(access_token=token)
     if not contents:
         st.info("No content found.")
         return
