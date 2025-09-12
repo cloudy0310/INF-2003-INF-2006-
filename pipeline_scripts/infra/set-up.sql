@@ -300,3 +300,46 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow_users_select_own_profile" ON public.users
   FOR SELECT
   USING ( user_id = auth.uid()::uuid );
+
+-- -----------------------
+-- News YM Review
+-- -----------------------
+
+create table if not exists public.news_articles (
+  article_id     text primary key,                  
+  title          text            not null,
+  canonical_url  text            not null unique,   -- publisher URL
+  source         text,
+  author         text,
+  snippet        text,                              -- short summary/excerpt
+  content        text,                              -- Fulltext
+  image_url      text,
+  published_at   timestamptz,
+  fetched_at     timestamptz    not null default now(),
+  score          double precision,
+  tags           text[]          default '{}',
+  raw            jsonb
+);
+
+alter table public.news_articles
+  add column if not exists day date generated always as (date(published_at)) stored;
+
+create index if not exists news_articles_published_idx on public.news_articles (published_at desc);
+create index if not exists news_articles_day_idx       on public.news_articles (day desc);
+create index if not exists news_articles_source_idx    on public.news_articles (source);
+
+create index if not exists news_articles_search_idx on public.news_articles
+using gin (to_tsvector('english', coalesce(title,'') || ' ' || coalesce(snippet,'')));
+
+-- -----------------------
+-- News Summary
+-- -----------------------
+
+create table if not exists public.news_daily_summary (
+  day              date primary key,
+  summary          text not null,        -- paragraph: recent developments
+  outlook          text not null,        -- paragraph: cautious outlook
+  sentiment_score  double precision,
+  article_ids      text[] not null,      -- references news_articles.article_id
+  created_at       timestamptz not null default now()
+);
