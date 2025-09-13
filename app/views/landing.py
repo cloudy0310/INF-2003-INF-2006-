@@ -1,10 +1,10 @@
-# app/views/landing.py
 import streamlit as st
 from app.auth import login, signup, get_profile
 
 def render():
     st.title("Welcome — sign in or create an account")
 
+    # Create login/signup tabs
     login_tab, signup_tab = st.tabs(["Login", "Sign up"])
 
     # ---------- LOGIN TAB ----------
@@ -15,37 +15,28 @@ def render():
 
         if st.button("Login", key="login_btn"):
             res = login(email, pw)
-            # debug: show raw response for troubleshooting
-            st.write("login response (raw):", res.get("raw"))
             if res.get("error"):
                 st.error(f"Login error: {res.get('error')}")
             else:
+                # store user and token in session state
                 user = res.get("user")
                 token = res.get("access_token") or st.session_state.get("access_token")
-                st.success("Logged in")
-                # store again (defensive)
                 st.session_state["user"] = user
                 if token:
                     st.session_state["access_token"] = token
 
-                # try to load profile using user's id and token (profile table uses user_id)
+                # try to load profile
                 try:
-                    # user may be dict-like or object; probe common keys
-                    user_id = None
-                    if isinstance(user, dict):
-                        user_id = user.get("id") or user.get("sub") or user.get("user_id")
-                    else:
-                        user_id = getattr(user, "id", None) or getattr(user, "sub", None)
+                    user_id = user.get("id") or user.get("sub") or user.get("user_id")
                     if user_id:
                         profile = get_profile(user_id, access_token=token)
                         st.session_state["profile"] = profile
-                        st.write("Loaded profile:", profile)
-                    else:
-                        st.info("Logged in but couldn't find user id in returned user object.")
                 except Exception as e:
-                    st.warning(f"Logged in but failed to load profile: {e}")
+                    st.warning(f"Failed to load profile: {e}")
 
-                st.rerun()
+                # redirect to default tab
+                st.session_state["active_tab"] = "Stock Analysis"
+                st.experimental_rerun()  # rerun to go to router
 
     # ---------- SIGNUP TAB ----------
     with signup_tab:
@@ -59,42 +50,28 @@ def render():
                 st.error("Please enter a username.")
             else:
                 res = signup(email_s, pw_s, username)
-                # debug
-                st.write("signup response (raw):", res.get("raw"))
                 if res.get("error"):
                     st.error(f"Signup failed: {res.get('error')}")
                 else:
+                    # store user and token
                     user = res.get("user")
                     token = res.get("access_token") or st.session_state.get("access_token")
-                    st.success("Account created.")
-                    # store
                     st.session_state["user"] = user
                     if token:
                         st.session_state["access_token"] = token
 
-                    # attempt to load profile
+                    # load profile
                     try:
-                        user_id = None
-                        if isinstance(user, dict):
-                            user_id = user.get("id") or user.get("sub") or user.get("user_id")
-                        else:
-                            user_id = getattr(user, "id", None) or getattr(user, "sub", None)
+                        user_id = user.get("id") or user.get("sub") or user.get("user_id")
                         if user_id:
                             profile = get_profile(user_id, access_token=token)
                             st.session_state["profile"] = profile
-                            st.write("Loaded profile:", profile)
-                        else:
-                            st.info("Signed up but couldn't find user id in returned user object.")
                     except Exception as e:
-                        st.warning(f"Signed up, but failed to load profile: {e}")
+                        st.warning(f"Failed to load profile: {e}")
 
-                    st.rerun()
+                    # redirect to default tab
+                    st.session_state["active_tab"] = "Stock Analysis"
+                    st.experimental_rerun()  # rerun to go to router
 
     st.markdown("---")
-    st.caption("If you see configuration errors (missing Supabase keys), check `.streamlit/secrets.toml` or your `.env`.")
-    # Helpful debug: show whether secrets are loaded
-    try:
-        supabase_url = st.secrets.get("SUPABASE", {}).get("SUPABASE_URL")
-        st.caption(f"Supabase URL loaded: {bool(supabase_url)}")
-    except Exception:
-        pass
+    st.caption("Check your Supabase keys if there are configuration errors.")
