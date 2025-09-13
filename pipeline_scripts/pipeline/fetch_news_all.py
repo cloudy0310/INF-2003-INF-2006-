@@ -197,6 +197,10 @@ def run_backfill(start_date: str, end_date: str, step_days: int = 7, per_step_to
 
         rows = []
         for a in ranked:
+            pub_dt = (
+                datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)
+                if a.get("published_ts") else None
+            )
             rows.append({
                 "article_id": article_id_for(a["url"], a["title"]),
                 "title": a["title"],
@@ -206,7 +210,9 @@ def run_backfill(start_date: str, end_date: str, step_days: int = 7, per_step_to
                 "snippet": a.get("snippet"),
                 "content": a.get("content"),
                 "image_url": a.get("image"),
-                "published_at": datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).isoformat() if a.get("published_ts") else None,
+                "published_at": pub_dt.isoformat() if pub_dt else None,
+                "day": pub_dt.date().isoformat() if pub_dt else None,
+                "published_time": pub_dt.strftime("%H:%M:%S") if pub_dt else None,
                 "score": a.get("score"),
                 "raw": None,
             })

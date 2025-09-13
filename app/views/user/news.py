@@ -4,7 +4,7 @@ import streamlit as st
 from datetime import datetime, timedelta, timezone, date
 from urllib.parse import urlparse
 import pandas as pd
-
+from zoneinfo import ZoneInfo
 from app.api.display_news import list_news, get_daily_summary
 
 st.header("News")
@@ -41,6 +41,14 @@ def _load_news(days: int, q: str, source: str, limit: int, page: int):
     )
     return rows
 
+SG = ZoneInfo("Asia/Singapore")
+def to_sgt(iso_str: str | None) -> str:
+    if not iso_str:
+        return ""
+    # ensure the ISO string is timezone-aware
+    dt_utc = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    return dt_utc.astimezone(SG).strftime("%Y-%m-%d %H:%M SGT")
+
 # ----------------- Daily summary banner -----------------
 today_summary = get_daily_summary(date.today())
 if today_summary:
@@ -69,7 +77,7 @@ else:
             meta = " · ".join(
                 x for x in [
                     a.get("source") or a.get("author") or "",
-                    (a.get("published_at") or "").replace("T", " ")[:16],
+                    to_sgt(a.get("published_at")),  # <-- show in SGT
                 ] if x
             )
             if meta:

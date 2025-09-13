@@ -321,9 +321,19 @@ create table if not exists public.news_articles (
   raw            jsonb
 );
 
-alter table public.news_articles
-  add column if not exists day date generated always as (date(published_at)) stored;
+-- Replace generated column with plain columns
+alter table public.news_articles drop column if exists day;
+alter table public.news_articles add column if not exists day date;
+alter table public.news_articles add column if not exists published_time time;
 
+-- Backfill day/time for existing rows
+update public.news_articles
+set
+  day = (published_at at time zone 'UTC')::date,
+  published_time = (published_at at time zone 'UTC')::time
+where published_at is not null and (day is null or published_time is null);
+
+-- Indexes
 create index if not exists news_articles_published_idx on public.news_articles (published_at desc);
 create index if not exists news_articles_day_idx       on public.news_articles (day desc);
 create index if not exists news_articles_source_idx    on public.news_articles (source);
