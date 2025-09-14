@@ -8,15 +8,15 @@ def safe_rerun():
     except:
         pass
 
-def user_home(session, supabase):
+def admin_home(session, supabase):
     try:
         email = session.user.email
     except Exception:
         email = (session.get("user") or {}).get("email") if isinstance(session, dict) else None
 
-    st.title("🏠 User Home")
-    st.success(f"Welcome, {email} (user)!")
-    st.write("Put user content here.")
+    st.title("🔧 Admin Home")
+    st.success(f"Welcome, {email} (admin)!")
+    st.write("Put admin content here.")
 
     if st.button("Logout"):
         try:
