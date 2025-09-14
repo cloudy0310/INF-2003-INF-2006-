@@ -343,3 +343,36 @@ create table if not exists public.news_daily_summary (
   article_ids      text[] not null,      -- references news_articles.article_id
   created_at       timestamptz not null default now()
 );
+
+
+-- -----------------------
+-- stock prices
+-- -----------------------
+create table stock_prices (
+    ticker text not null,                      -- Partition key (symbol)
+    date date not null,                        -- Sort key (date)
+    
+    -- OHLCV
+    open numeric(12,4),
+    high numeric(12,4),
+    low numeric(12,4),
+    close numeric(12,4),
+    volume bigint,
+    
+    -- Technical Indicators
+    bb_sma_20 numeric(12,4),
+    bb_upper_20 numeric(12,4),
+    bb_lower_20 numeric(12,4),
+    rsi_14 numeric(8,4),
+    macd numeric(12,4),
+    macd_signal numeric(12,4),
+    macd_hist numeric(12,4),
+    buy_signal boolean default false,
+    sell_signal boolean default false,
+
+    -- Timestamps
+    created_at timestamp with time zone default now(),
+
+    -- Composite primary key (mimics DynamoDB pk+sk)
+    primary key (ticker, date)
+);
