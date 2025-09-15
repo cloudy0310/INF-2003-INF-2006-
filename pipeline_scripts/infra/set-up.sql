@@ -302,7 +302,7 @@ CREATE POLICY "allow_users_select_own_profile" ON public.users
   USING ( user_id = auth.uid()::uuid );
 
 -- -----------------------
--- News YM Review
+-- News
 -- -----------------------
 
 create table if not exists public.news_articles (
