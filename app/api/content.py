@@ -1,57 +1,104 @@
-# app/api/content_api.py
-from typing import List, Dict, Optional
-from app.supabase_helpers import rest_get, rest_post, rest_delete
-import streamlit as st
+# app/api/content.py
+import os
+import json
+from typing import Optional, Dict, Any
+from supabase import create_client
 
-def get_latest_content(access_token: Optional[str] = None) -> List[Dict]:
-    """
-    Fetch latest published content ordered by published_at descending.
-    """
+# ---------- Supabase helpers ----------
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE")
+
+
+def supabase_client():
+    if create_client is None or SUPABASE_URL is None or SUPABASE_KEY is None:
+        raise RuntimeError("Supabase client not configured. Set SUPABASE_URL and SUPABASE_KEY (or SUPABASE_SERVICE_ROLE).")
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+# ---------- CRUD wrappers ----------
+def list_content(supabase, published_only: bool = False, limit: Optional[int] = None, offset: Optional[int] = None, tag: Optional[str] = None, ticker: Optional[str] = None) -> Dict[str, Any]:
+    """Return list of content records. Returns dict with keys: data, error"""
     try:
-        # Positional argument for params
-        return rest_get("content", "?select=*&order=published_at.desc", access_token)
+        qb = supabase.table("content").select("*")
+        if published_only:
+            # not all clients support .is_, so we'll rely on server-side if possible; otherwise filter in Python below
+            try:
+                qb = qb.is_("published_at", "not", None)
+            except Exception:
+                pass
+        if ticker:
+            qb = qb.eq("ticker", ticker)
+        if limit:
+            qb = qb.limit(limit)
+        if offset and limit:
+            qb = qb.range(offset, offset + limit - 1)
+        res = qb.order("published_at", desc=True).execute()
+        if hasattr(res, "data"):
+            data = res.data
+            err = res.error if hasattr(res, "error") else None
+        elif isinstance(res, dict):
+            data = res.get("data")
+            err = res.get("error")
+        else:
+            data, err = None, None
+        # fallback filter by tag
+        if tag and data:
+            data = [d for d in data if tag in (d.get("tags") or [])]
+        if published_only and data:
+            data = [d for d in data if d.get("published_at")]
+        return {"data": data, "error": err}
     except Exception as e:
-        st.error(f"Failed to load content: {e}")
-        return []
+        return {"data": None, "error": str(e)}
 
 
-def get_content_by_id(content_id: str, access_token: Optional[str] = None) -> Optional[Dict]:
-    """
-    Fetch a single content item by its ID.
-    """
+def get_content(supabase, id: Optional[str] = None, slug: Optional[str] = None) -> Dict[str, Any]:
     try:
-        results = rest_get(
-            table="content",
-            params=f"?select=*&id=eq.{content_id}",
-            access_token=access_token
-        )
-        return results[0] if results else None
+        if id:
+            res = supabase.table("content").select("*").eq("id", id).single().execute()
+        elif slug:
+            res = supabase.table("content").select("*").eq("slug", slug).single().execute()
+        else:
+            return {"data": None, "error": "id or slug required"}
+        if hasattr(res, "data"):
+            return {"data": res.data, "error": res.error if hasattr(res, "error") else None}
+        if isinstance(res, dict):
+            return {"data": res.get("data"), "error": res.get("error")}
+        return {"data": None, "error": None}
     except Exception as e:
-        st.error(f"Failed to load content: {e}")
-        return None
+        return {"data": None, "error": str(e)}
 
-def create_content(payload: Dict, access_token: Optional[str] = None) -> Dict:
-    """
-    Create a new content item.
-    - payload: dict with fields like title, body, author_id, etc.
-    """
-    try:
-        r = rest_post("content", payload, access_token=access_token)
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        st.error(f"Failed to create content: {e}")
-        return {}
 
-def delete_content(content_id: str, access_token: Optional[str] = None) -> bool:
-    """
-    Delete content by ID.
-    Returns True if deletion succeeded.
-    """
+def create_content(supabase, payload) -> Dict[str, Any]:
     try:
-        r = rest_delete("content", f"id=eq.{content_id}", access_token=access_token)
-        r.raise_for_status()
-        return True
+        res = supabase.table("content").insert(payload).execute()
+        if hasattr(res, "data"):
+            return {"data": res.data, "error": res.error if hasattr(res, "error") else None}
+        if isinstance(res, dict):
+            return {"data": res.get("data"), "error": res.get("error")}
+        return {"data": None, "error": None}
     except Exception as e:
-        st.error(f"Failed to delete content: {e}")
-        return False
+        return {"data": None, "error": str(e)}
+
+
+def update_content(supabase, content_id: str, payload) -> Dict[str, Any]:
+    try:
+        res = supabase.table("content").update(payload).eq("id", content_id).execute()
+        if hasattr(res, "data"):
+            return {"data": res.data, "error": res.error if hasattr(res, "error") else None}
+        if isinstance(res, dict):
+            return {"data": res.get("data"), "error": res.get("error")}
+        return {"data": None, "error": None}
+    except Exception as e:
+        return {"data": None, "error": str(e)}
+
+
+def delete_content(supabase, content_id: str) -> Dict[str, Any]:
+    try:
+        res = supabase.table("content").delete().eq("id", content_id).execute()
+        if hasattr(res, "data"):
+            return {"data": res.data, "error": res.error if hasattr(res, "error") else None}
+        if isinstance(res, dict):
+            return {"data": res.get("data"), "error": res.get("error")}
+        return {"data": None, "error": None}
+    except Exception as e:
+        return {"data": None, "error": str(e)}
