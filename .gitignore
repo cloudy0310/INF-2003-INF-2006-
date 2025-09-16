@@ -1,0 +1,59 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+*.log
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# ---- Environment files ----
+.env
+*.env
+
+# ---- VS Code ----
+.vscode/
+*.code-workspace
+
+# ---- Terraform ----
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# ---- Pip / Poetry ----
+pip-log.txt
+pip-delete-this-directory.txt
+.poetry/
+
+# ---- Build / Packaging ----
+build/
+dist/
+.eggs/
+*.manifest
+*.spec
+
+# ---- Testing ----
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+.cache/
+.pyre/
+
+# ---- Jupyter ----
+.ipynb_checkpoints
+
+# ---- System ----
+.DS_Store
+Thumbs.db
