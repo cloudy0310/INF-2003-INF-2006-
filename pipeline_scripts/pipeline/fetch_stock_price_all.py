@@ -1,25 +1,16 @@
 """
-fetch_stock_price_all.py - updated with robust Supabase upsert (client + REST fallback)
-Requires: pandas, numpy, yfinance, requests
-Optional: supabase (supabase-py), boto3 (for DynamoDB mode)
-Environment variables:
-  SUPABASE_URL, SUPABASE_KEY (anon key or service role key)
-  SUPABASE_SERVICE_ROLE (recommended for server-side writes - store securely)
-  SUPABASE_TABLE (defaults to 'stock_prices')
-  USE_DYNAMODB=1 to use DynamoDB instead of Supabase
+fetch_stock_price_all.py - DynamoDB/Supabase writer with strict AWS session + rich logs
 """
 from __future__ import annotations
-from dotenv import load_dotenv, find_dotenv
-from pathlib import Path
-import os
-import json
+from dotenv import load_dotenv
+import os, json
 from decimal import Decimal
 from typing import List, Optional
 import pandas as pd
 import numpy as np
 import yfinance as yf
 
-load_dotenv()
+load_dotenv()  # loads .env from current working dir
 
 # optional DB libs
 try:
@@ -29,10 +20,10 @@ except Exception:
 
 try:
     import boto3
+    from botocore.exceptions import ClientError
 except Exception:
     boto3 = None
 
-# requests for REST fallback
 try:
     import requests
 except Exception:
@@ -54,13 +45,11 @@ def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values("date").reset_index(drop=True)
     df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-    # MACD
     ema12 = df["close"].ewm(span=12, adjust=False).mean()
     ema26 = df["close"].ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
     signal = macd.ewm(span=9, adjust=False).mean()
 
-    # RSI(14)
     delta = df["close"].diff(1)
     gain = delta.where(delta > 0, 0.0)
     loss = -delta.where(delta < 0, 0.0)
@@ -70,7 +59,6 @@ def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
     rsi = 100 - (100 / (1 + rs))
     rsi = rsi.fillna(50.0)
 
-    # Bollinger Bands
     sma = df["close"].rolling(window=20, min_periods=1).mean()
     std_dev = df["close"].rolling(window=20, min_periods=1).std().fillna(0)
     upper = sma + 2 * std_dev
@@ -101,27 +89,8 @@ def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-# ---------- Helper utilities ----------
-def chunked(iterable, size=500):
-    it = iter(iterable)
-    while True:
-        chunk = []
-        try:
-            for _ in range(size):
-                chunk.append(next(it))
-        except StopIteration:
-            if chunk:
-                yield chunk
-            break
-        yield chunk
-
-# ---------- Robust Supabase upsert (client + REST fallback) ----------
+# ---------- Supabase upsert ----------
 def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflict: str = "ticker,date") -> None:
-    """
-    Upsert to Supabase:
-      - Try supabase client first (if installed)
-      - If client fails or not installed, fallback to REST API using SUPABASE_SERVICE_ROLE (if present) or key
-    """
     if df is None or df.empty:
         print("[upsert_supabase] dataframe empty, nothing to write")
         return
@@ -146,16 +115,14 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
         return nr
 
     normalized = [norm(r) for r in records]
-    chunk_size = 200  # safer chunk size to reduce throttling / payload issues
+    chunk_size = 200
 
     for i in range(0, len(normalized), chunk_size):
         chunk = normalized[i:i+chunk_size]
-        # Try client if available
         if create_client is not None:
             try:
                 supabase = create_client(url, key)
                 resp = supabase.table(table).upsert(chunk).execute()
-                # supabase-py often returns object/dict-like with .data/.error or dict keys
                 status = getattr(resp, "status_code", None)
                 data = getattr(resp, "data", None) or (resp.get("data") if isinstance(resp, dict) else None)
                 error = getattr(resp, "error", None) or (resp.get("error") if isinstance(resp, dict) else None)
@@ -166,10 +133,8 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
             except Exception as e:
                 print(f"[supabase-client] client upsert failed for chunk {i}-{i+len(chunk)}: {e}. Falling back to REST...")
 
-        # REST fallback
         if requests is None:
-            print("[rest] requests not installed; cannot perform REST fallback. Install 'requests' or 'supabase' package.")
-            raise RuntimeError("Neither supabase client succeeded nor requests available for REST fallback")
+            raise RuntimeError("requests not installed; cannot perform REST fallback")
 
         service_key = os.environ.get("SUPABASE_SERVICE_ROLE") or key
         rest_url = url.rstrip("/") + f"/rest/v1/{table}"
@@ -179,51 +144,84 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }
-        params = {
-            "on_conflict": on_conflict,
-            "upsert": "true"
-        }
+        params = {"on_conflict": on_conflict, "upsert": "true"}
 
-        try:
-            r = requests.post(rest_url, params=params, headers=headers, data=json.dumps(chunk), timeout=60)
-            text_preview = (r.text[:400] + "...") if r.text and len(r.text) > 400 else r.text
-            print(f"[rest] chunk {i}-{i+len(chunk)} status={r.status_code} text={text_preview}")
-            if r.status_code not in (200, 201):
-                raise RuntimeError(f"REST upsert failed: {r.status_code} {r.text}")
-        except Exception as e:
-            print(f"[rest] upsert exception for chunk {i}-{i+len(chunk)}: {e}")
-            # choose whether to raise or continue; raising helps you notice failures immediately:
-            raise
+        r = requests.post(rest_url, params=params, headers=headers, data=json.dumps(chunk), timeout=60)
+        text_preview = (r.text[:400] + "...") if r.text and len(r.text) > 400 else r.text
+        print(f"[rest] chunk {i}-{i+len(chunk)} status={r.status_code} text={text_preview}")
+        if r.status_code not in (200, 201):
+            raise RuntimeError(f"REST upsert failed: {r.status_code} {r.text}")
 
-# ---------- DynamoDB upsert (unchanged) ----------
+# ---------- DynamoDB upsert (FORCED profile/region + logs) ----------
 def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = None) -> None:
     if boto3 is None:
         raise RuntimeError("boto3 not installed")
-    session = boto3.session.Session()
-    ddb = session.resource("dynamodb", region_name=region) if region else session.resource("dynamodb")
-    table = ddb.Table(table_name)
+
+    # Force the exact same signing context your CLI uses
+    region  = (region or os.getenv("AWS_REGION", "ap-southeast-1")).strip()
+    profile = os.getenv("AWS_PROFILE", "default").strip()
+
+    session = boto3.Session(profile_name=profile, region_name=region)
+
+    # Log identity + endpoint so we can see exactly what’s used
+    sts = session.client("sts")
+    who = sts.get_caller_identity()
+    ddb_client = session.client("dynamodb")
+    print("[dynamodb] profile =", session.profile_name)
+    print("[dynamodb] region  =", session.region_name)
+    print("[dynamodb] endpoint=", ddb_client.meta.endpoint_url)
+    print("[dynamodb] caller  =", who)
+
+    ddb = session.resource("dynamodb")
+    table = ddb.Table(table_name.strip())
 
     records = df.to_dict(orient="records")
-    for i in range(0, len(records), 25):
-        chunk = records[i:i+25]
-        with table.batch_writer() as batch:
-            for r in chunk:
-                item = {}
-                for k, v in r.items():
-                    if pd.isna(v):
-                        continue
-                    if k in NUMERIC_COLS + ["open", "high", "low", "close"]:
-                        item[k] = Decimal(str(round(float(v), 4)))
-                    elif k == "volume":
-                        item[k] = int(v)
-                    elif k in ("buy_signal", "sell_signal"):
-                        item[k] = bool(v)
-                    else:
-                        item[k] = str(v)
-                batch.put_item(Item=item)
-        print(f"[dynamodb] wrote {len(chunk)} items")
+    print(f"[dynamodb] preparing to write {len(records)} records")
+    if records:
+        print("[dynamodb] sample raw record:", records[:1])
 
-# ---------- Main backfill flow (unchanged, with extra debug) ----------
+    # Convert + enforce keys
+    prepared = []
+    for r in records:
+        item = {}
+        for k, v in r.items():
+            if pd.isna(v):
+                continue
+            if k in NUMERIC_COLS + ["open","high","low","close"]:
+                item[k] = Decimal(str(round(float(v), 4)))
+            elif k == "volume":
+                item[k] = int(v)
+            elif k in ("buy_signal", "sell_signal"):
+                item[k] = bool(v)
+            else:
+                item[k] = str(v)
+
+        if "ticker" not in item or "date" not in item:
+            print("⚠️  Skipping row missing ticker/date:", item)
+            continue
+        prepared.append(item)
+
+    if not prepared:
+        print("[dynamodb] nothing to write after preparation")
+        return
+
+    print("[dynamodb] sample prepared item:", prepared[0])
+
+    # Write with batch_writer (handles retries automatically)
+    try:
+        wrote = 0
+        with table.batch_writer() as batch:
+            for i, it in enumerate(prepared, 1):
+                batch.put_item(Item=it)
+                if i % 5000 == 0:
+                    print(f"[dynamodb] wrote {i} items...")
+                wrote = i
+        print(f"[dynamodb] wrote {wrote} items total")
+    except ClientError as e:
+        print("[dynamodb] batch write failed; example item:", prepared[0])
+        raise
+
+# ---------- Fetch + prepare ----------
 def fetch_all_and_upsert(tickers: List[str], start: Optional[str] = None) -> pd.DataFrame:
     frames = []
     for t in tickers:
@@ -277,6 +275,7 @@ def fetch_all_and_upsert(tickers: List[str], start: Optional[str] = None) -> pd.
         ])
     return pd.concat(frames, ignore_index=True)
 
+# ---------- Main ----------
 if __name__ == "__main__":
     tickers = [t.strip() for t in os.environ.get("TICKERS", DEFAULT_TICKERS).split(",") if t.strip()]
     start = os.environ.get("START_DATE")
@@ -288,22 +287,21 @@ if __name__ == "__main__":
 
     use_ddb = os.environ.get("USE_DYNAMODB", "0") == "1"
     if use_ddb:
-        ddb_table = os.environ.get("DDB_TABLE")
-        region = os.environ.get("AWS_REGION")
+        ddb_table = os.environ.get("DDB_TABLE", "stock_prices")
+        region = os.environ.get("AWS_REGION", "ap-southeast-1")
         if not ddb_table:
             print("[main] DDB_TABLE not set — not writing")
         else:
+            # optional: strip proxies if your network injects headers
+            for k in ("HTTP_PROXY","HTTPS_PROXY","http_proxy","https_proxy"):
+                os.environ.pop(k, None)
             upsert_dynamodb(df, ddb_table, region=region)
     else:
         supabase_url = os.environ.get("SUPABASE_URL")
-        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_KEY")
         supabase_table = os.environ.get("SUPABASE_TABLE", "stock_prices")
         if supabase_url and supabase_key:
-            try:
-                upsert_supabase(df, supabase_table, supabase_url, supabase_key)
-            except Exception as e:
-                print("[main] upsert_supabase failed:", e)
-                raise
+            upsert_supabase(df, supabase_table, supabase_url, supabase_key)
         else:
             print("[main] SUPABASE_URL or SUPABASE_KEY not set; printing sample rows instead")
             print(df.head().to_dict(orient="records"))

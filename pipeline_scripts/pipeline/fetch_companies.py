@@ -225,6 +225,7 @@ def main():
     use_rds = os.environ.get("USE_RDS", "0") == "1"
 
     if use_rds:
+        print("rds")
         conn = pg_connect()
         try:
             pg_upsert_companies(conn, df)
@@ -232,6 +233,7 @@ def main():
             conn.close()
         return
 
+    print("supabase")
     # supabase mode
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_KEY")
