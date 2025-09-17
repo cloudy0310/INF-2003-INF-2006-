@@ -13,21 +13,21 @@ supabase = create_client(supabase_url, supabase_key)
 
 st.set_page_config(layout="wide")
 
-# --- Initialize session state (no auth) ---
+# --- Initialize session state ---
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "/user_page/home"   # default to user_page package
+    st.session_state.current_page = "/page/home"
 if "top_nav_selected" not in st.session_state:
     st.session_state.top_nav_selected = 0
 
 st.title("📊 My Dashboard")
 
-# --- Define pages and icons (no admin, no logout) ---
+# --- Define pages and icons ---
 page_options = ["User Home", "News", "Stock Analysis", "Watchlist"]
 page_paths = {
-    "User Home": "/user_page/home",
-    "News": "/user_page/news",
-    "Stock Analysis": "/user_page/stock_analysis",
-    "Watchlist": "/user_page/watchlist",
+    "User Home": "/page/home",
+    "News": "/page/news",
+    "Stock Analysis": "/page/stock_analysis",
+    "Watchlist": "/page/watchlist",
 }
 page_icons = ["house", "newspaper", "bar-chart", "bookmark"]
 
@@ -47,24 +47,22 @@ selected = option_menu(
     }
 )
 
-# --- Handle navigation selection ---
+# --- Navigation selection ---
 st.session_state.top_nav_selected = page_options.index(selected)
 st.session_state.current_page = page_paths[selected]
 
-# --- Dynamic page import (no session/auth passed) ---
 page = st.session_state.current_page
-module_name = page.replace("/", ".")[1:]  # "/user_page/news" -> "user_page.news"
+module_name = page.replace("/", ".")[1:]
 
 try:
-    if page.startswith("/user_page"):
+    if page.startswith("/page"):
         module = importlib.import_module(module_name)
-        # Expect a user_page() entrypoint with no auth args
-        if hasattr(module, "user_page"):
-            module.user_page(supabase=supabase)
+        if hasattr(module, "page"):
+            module.page(supabase=supabase)
         else:
-            st.error(f"`{module_name}` loaded but missing `user_page(**kwargs)`.")
+            st.error(f"`{module_name}` loaded but missing `page(**kwargs)`.")
     else:
-        st.error(f"Unknown page root for '{page}'. Expected '/user_page/*'.")
+        st.error(f"Unknown page root for '{page}'. Expected '/page/*'.")
 except ModuleNotFoundError:
     st.error(f"Page module '{module_name}' not found.")
 except Exception as e:

@@ -99,6 +99,8 @@ def admin_get_content(sb: Client, content_id: str) -> Optional[Dict[str, Any]]:
     return res.data if getattr(res, "data", None) else None
 
 # ---------- Create / Update / Delete ----------
+# ---------- Create / Update / Delete ----------
+
 def admin_create_content(
     sb: Client,
     *,
@@ -128,8 +130,17 @@ def admin_create_content(
     if publish_now:
         payload["published_at"] = _now_iso()
 
-    res = sb.table("content").insert(payload).select("*").single().execute()
-    return res.data
+    # IMPORTANT: no .select().single() here in supabase-py
+    res = sb.table("content").insert(payload, returning="representation").execute()
+    data = getattr(res, "data", None)
+
+    # insert returns a list of rows; normalize to a dict for callers
+    if isinstance(data, list):
+        return data[0] if data else payload
+    elif isinstance(data, dict):
+        return data
+    return payload
+
 
 def admin_update_content(
     sb: Client,
@@ -150,9 +161,9 @@ def admin_update_content(
     if title is not None: upd["title"] = title.strip()
     if body is not None: upd["body"] = body
     if slug is not None: upd["slug"] = _ensure_slug(slug, title)
-    if excerpt is not None: upd["excerpt"] = excerpt.strip() or None
-    if image_url is not None: upd["image_url"] = image_url.strip() or None
-    if ticker is not None: upd["ticker"] = ticker.upper().strip() or None
+    if excerpt is not None: upd["excerpt"] = (excerpt or "").strip() or None
+    if image_url is not None: upd["image_url"] = (image_url or "").strip() or None
+    if ticker is not None: upd["ticker"] = (ticker or "").upper().strip() or None
     if tags is not None: upd["tags"] = _csv_to_tags(tags)
     if content_type is not None: upd["content_type"] = content_type
 
@@ -161,8 +172,16 @@ def admin_update_content(
     if unpublish is True:
         upd["published_at"] = None
 
-    res = sb.table("content").update(upd).eq("id", content_id).select("*").single().execute()
-    return res.data
+    # IMPORTANT: no .select().single() here in supabase-py
+    res = sb.table("content").update(upd, returning="representation").eq("id", content_id).execute()
+    data = getattr(res, "data", None)
+
+    if isinstance(data, list):
+        return data[0] if data else {"id": content_id, **upd}
+    elif isinstance(data, dict):
+        return data
+    return {"id": content_id, **upd}
+
 
 def admin_delete_content(sb: Client, content_id: str) -> None:
     sb.table("content").delete().eq("id", content_id).execute()

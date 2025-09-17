@@ -21,7 +21,7 @@ def _tip_label(text: str, tip: str) -> str:
     # hover tooltip via HTML title=""
     return f"{text} <span style='color:#9aa0a6' title='{tip}'>ℹ️</span>"
 
-def admin_page(supabase: Client = None):
+def page(supabase: Client = None):
     if supabase is None:
         st.error("Supabase client missing: router must call admin_page(supabase=supabase).")
         st.stop()

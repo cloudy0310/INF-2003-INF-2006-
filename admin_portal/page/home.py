@@ -1,4 +1,3 @@
-# user_page/home.py
 from __future__ import annotations
 import math
 import streamlit as st
@@ -6,7 +5,6 @@ from supabase import Client
 from api.content import list_content, count_content
 
 def _tip_label(text: str, tip: str) -> str:
-    # simple tooltip using HTML title attr
     return f"{text} <span style='color:#9aa0a6' title='{tip}'>ℹ️</span>"
 
 def _badge(text: str) -> str:
@@ -29,12 +27,10 @@ def _content_card(row: dict):
         with c1:
             img = row.get("image_url")
             if img:
-                st.image(img, use_container_width=True)
+                st.image(img, use_column_width=True)  # <-- fix
         with c2:
-            # title
             st.markdown(f"### {row.get('title') or 'Untitled'}")
 
-            # meta badges (type / ticker / date)
             meta_html = ""
             if row.get("content_type"):
                 meta_html += _badge(row["content_type"])
@@ -45,11 +41,9 @@ def _content_card(row: dict):
             if meta_html:
                 st.markdown(meta_html, unsafe_allow_html=True)
 
-            # excerpt
             if row.get("excerpt"):
                 st.write(row["excerpt"])
 
-            # tags
             tags = row.get("tags") or []
             if tags:
                 tag_html = "".join(_tag_chip(t) for t in tags)
@@ -57,15 +51,14 @@ def _content_card(row: dict):
 
     st.markdown("---")
 
-def admin_page(supabase: Client = None):
+def page(supabase: Client = None):
     if supabase is None:
-        st.error("Supabase client missing: router must call user_page(supabase=supabase).")
+        st.error("Supabase client missing: router must call page(supabase=supabase).")
         st.stop()
 
     st.title("🏠 Home")
     st.caption("Latest content from your database.")
 
-    # ── Filters in a single slim row ──────────────────────────────────────────
     f1, f2, f3, f4 = st.columns([1.0, 1.6, 1.6, 0.6])
     with f1:
         ticker = st.text_input("Filter by ticker", value="", placeholder="e.g., AAPL").upper().strip() or None
@@ -85,19 +78,15 @@ def admin_page(supabase: Client = None):
 
     st.markdown("---")
 
-    # ── Compact pagination bar (one line) ─────────────────────────────────────
     if "content_page" not in st.session_state:
         st.session_state.content_page = 1
-
     if apply_clicked:
         st.session_state.content_page = 1
 
-    # small page-size selector (label collapsed)
     pcol_l, pcol_prev, pcol_mid, pcol_next, pcol_ps = st.columns([0.6, 0.6, 2.2, 0.6, 1.0])
-
     with pcol_ps:
         page_size = st.selectbox("", [6, 12, 24], index=1, label_visibility="collapsed")
-    # Count total AFTER we know page_size for page math
+
     try:
         total_rows = count_content(supabase, ticker=ticker, tags_any=tags_any, search=search, only_published=True)
     except Exception as e:
@@ -121,7 +110,6 @@ def admin_page(supabase: Client = None):
 
     st.markdown("---")
 
-    # ── Data fetch ────────────────────────────────────────────────────────────
     try:
         rows = list_content(
             supabase,
@@ -136,7 +124,6 @@ def admin_page(supabase: Client = None):
         st.error(f"Failed to fetch content: {e}")
         st.stop()
 
-    # ── Render header with tooltip (markdown to allow HTML) ───────────────────
     st.markdown(
         f"### {_tip_label('Latest content', 'Direct from the content table.')}",
         unsafe_allow_html=True

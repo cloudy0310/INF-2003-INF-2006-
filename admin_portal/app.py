@@ -15,20 +15,20 @@ st.set_page_config(layout="wide")
 
 # --- Initialize session state (no auth) ---
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "/admin_page/home"
+    st.session_state.current_page = "/page/home"
 if "top_nav_selected" not in st.session_state:
     st.session_state.top_nav_selected = 0
 
 st.title("📊 My Dashboard")
 
-# --- Define pages and icons (no admin, no logout) ---
+# --- Define pages and icons ---
 page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist"]
 page_paths = {
-    "Admin Home": "/admin_page/admin_home",
-    "User Home": "/admin_page/home",
-    "News": "/admin_page/news",
-    "Stock Analysis": "/admin_page/stock_analysis",
-    "Watchlist": "/admin_page/watchlist",
+    "Admin Home": "/page/admin_home",
+    "User Home": "/page/home",
+    "News": "/page/news",
+    "Stock Analysis": "/page/stock_analysis",
+    "Watchlist": "/page/watchlist",
 }
 page_icons = ["house", "house", "newspaper", "bar-chart", "bookmark"]
 
@@ -57,15 +57,15 @@ page = st.session_state.current_page
 module_name = page.replace("/", ".")[1:]
 
 try:
-    if page.startswith("/admin_page"):
+    if page.startswith("/page"):
         module = importlib.import_module(module_name)
         # Expect a admin_page() entrypoint with no auth args
-        if hasattr(module, "admin_page"):
-            module.admin_page(supabase=supabase)
+        if hasattr(module, "page"):
+            module.page(supabase=supabase)
         else:
-            st.error(f"`{module_name}` loaded but missing `admin_page(**kwargs)`.")
+            st.error(f"`{module_name}` loaded but missing `page(**kwargs)`.")
     else:
-        st.error(f"Unknown page root for '{page}'. Expected '/admin_page/*'.")
+        st.error(f"Unknown page root for '{page}'. Expected '/page/*'.")
 except ModuleNotFoundError:
     st.error(f"Page module '{module_name}' not found.")
 except Exception as e:

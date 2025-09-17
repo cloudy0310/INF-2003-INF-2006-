@@ -33,7 +33,7 @@ def _pill(text: str) -> str:
     return f"<span class='badge'>{text}</span>"
 
 # ---------- Main renderer ----------
-def _render_admin(supabase: Optional[Client] = None):
+def page(supabase: Optional[Client] = None):
     if supabase is None:
         st.error("Supabase client missing: router must call *_page(supabase=supabase).")
         st.stop()

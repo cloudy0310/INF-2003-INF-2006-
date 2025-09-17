@@ -12,7 +12,7 @@ def _ensure_local_watchlist():
     if "local_watchlist" not in st.session_state:
         st.session_state.local_watchlist = set()
 
-def admin_page(supabase=None):
+def page(supabase=None):
     st.title("📈 Stock Analysis Dashboard")
     st.caption("Demo mode: login removed. Watchlist is stored locally in this browser session.")
 
