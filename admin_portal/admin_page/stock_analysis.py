@@ -5,14 +5,14 @@ from plotly.subplots import make_subplots
 from datetime import datetime
 from api.stock_analysis import get_company_info, get_financials, get_stock_prices
 from api.stock_analysis_helper import evaluate_strategy_for_timeframes
-# from api.watchlist import add_to_watchlist, get_watchlist_count  # disabled server-side add (requires user)
-# from api.watchlist import get_watchlist_count  # keep count if it doesn't require user_id
+from api.watchlist import get_or_create_default_watchlist, upsert_watchlist_item
+import os
 
 def _ensure_local_watchlist():
     if "local_watchlist" not in st.session_state:
         st.session_state.local_watchlist = set()
 
-def user_page(supabase=None):
+def admin_page(supabase=None):
     st.title("📈 Stock Analysis Dashboard")
     st.caption("Demo mode: login removed. Watchlist is stored locally in this browser session.")
 
@@ -327,32 +327,17 @@ def user_page(supabase=None):
                 else:
                     st.info(f"No equity data for {case} case to plot.")
 
+    # -------------------- Add to watchlist --------------------
     st.markdown("---")
-    # --- Local watchlist controls (no login) ---
-    watch_col1, watch_col2 = st.columns([3, 1])
-    with watch_col1:
-        st.write(f"Add **{ticker}** to your watchlist (local, this session)")
-    with watch_col2:
-        if st.button("+ Add to watchlist"):
-            st.session_state.local_watchlist.add(ticker)
-            st.success(f"{ticker} added to your local watchlist")
+    st.subheader("Add to watchlist")
 
-    try:
-        count = get_watchlist_count(ticker)
-    except Exception:
-        count = None
-    if count is not None:
-        st.caption(f"{int(count)} users have this on their watchlist")
-    else:
-        st.caption("Watchlist count unavailable")
+    FIXED_USER_ID = os.getenv("WATCHLIST_USER_ID")
 
-    # Simple local watchlist view
-    st.subheader("Your local watchlist")
-    if st.session_state.local_watchlist:
-        st.write(", ".join(sorted(st.session_state.local_watchlist)))
-        remove_ticker = st.selectbox("Remove a ticker", [""] + sorted(st.session_state.local_watchlist))
-        if remove_ticker and st.button("Remove"):
-            st.session_state.local_watchlist.discard(remove_ticker)
-            st.success(f"Removed {remove_ticker}")
-    else:
-        st.info("Your watchlist is empty.")
+    if st.button("➕ Add to watchlist"):
+        try:
+            wl = get_or_create_default_watchlist(supabase, FIXED_USER_ID)
+            upsert_watchlist_item(supabase, wl["watchlist_id"], ticker, 0.0) 
+            st.success(f"Added {ticker} to your watchlist with allocation 0.")
+        except Exception as e:
+            st.error(f"Failed to add {ticker} to watchlist: {e}")
+

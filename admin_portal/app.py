@@ -15,22 +15,22 @@ st.set_page_config(layout="wide")
 
 # --- Initialize session state (no auth) ---
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "/user_page/home"   # default to user_page package
+    st.session_state.current_page = "/admin_page/home"
 if "top_nav_selected" not in st.session_state:
     st.session_state.top_nav_selected = 0
 
 st.title("📊 My Dashboard")
 
-# --- Define pages and icons (add Admin) ---
-page_options = ["User Home", "News", "Stock Analysis", "Watchlist", "Admin"]
+# --- Define pages and icons (no admin, no logout) ---
+page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist"]
 page_paths = {
-    "User Home": "/user_page/home",
-    "News": "/user_page/news",
-    "Stock Analysis": "/user_page/stock_analysis",
-    "Watchlist": "/user_page/watchlist",
-    "Admin": "/admin_page/home",
+    "Admin Home": "/admin_page/admin_home",
+    "User Home": "/admin_page/home",
+    "News": "/admin_page/news",
+    "Stock Analysis": "/admin_page/stock_analysis",
+    "Watchlist": "/admin_page/watchlist",
 }
-page_icons = ["house", "newspaper", "bar-chart", "bookmark", "gear"]
+page_icons = ["house", "house", "newspaper", "bar-chart", "bookmark"]
 
 # --- Top navigation bar ---
 selected = option_menu(
@@ -54,38 +54,19 @@ st.session_state.current_page = page_paths[selected]
 
 # --- Dynamic page import (no session/auth passed) ---
 page = st.session_state.current_page
-route = page.replace("/", ".")[1:]  # "/user_page/news" -> "user_page.news"
+module_name = page.replace("/", ".")[1:]
 
 try:
-    module = None
-
-    if page.startswith("/user_page"):
-        # e.g. user_page.home
-        module = importlib.import_module(route)
-        if hasattr(module, "user_page"):
-            module.user_page(supabase=supabase)
-        else:
-            st.error(f"`{route}` loaded but missing `user_page(**kwargs)`.")
-
-    elif page.startswith("/admin_page"):
-        # Try plain 'admin_page.home' first, then 'admin_portal.admin_page.home' (matches your folder structure)
-        try:
-            module = importlib.import_module(route)  # admin_page.home
-        except ModuleNotFoundError:
-            module = importlib.import_module(f"admin_portal.{route}")  # admin_portal.admin_page.home
-
-        # Prefer admin_page(), fallback to admin_home()
+    if page.startswith("/admin_page"):
+        module = importlib.import_module(module_name)
+        # Expect a admin_page() entrypoint with no auth args
         if hasattr(module, "admin_page"):
             module.admin_page(supabase=supabase)
-        elif hasattr(module, "admin_home"):
-            module.admin_home(supabase=supabase)
         else:
-            st.error(f"`{module.__name__}` loaded but missing `admin_page(**kwargs)` or `admin_home(**kwargs)`.")
-
+            st.error(f"`{module_name}` loaded but missing `admin_page(**kwargs)`.")
     else:
-        st.error(f"Unknown page root for '{page}'. Expected '/user_page/*' or '/admin_page/*'.")
-
+        st.error(f"Unknown page root for '{page}'. Expected '/admin_page/*'.")
 except ModuleNotFoundError:
-    st.error(f"Page module '{route}' not found (also tried 'admin_portal.{route}' for admin pages).")
+    st.error(f"Page module '{module_name}' not found.")
 except Exception as e:
-    st.error(f"Failed to render page '{route}': {e}")
+    st.error(f"Failed to render '{module_name}': {e}")

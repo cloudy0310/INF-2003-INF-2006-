@@ -1,67 +1,150 @@
-# streamlit_app.py
+# user_page/home.py
+from __future__ import annotations
+import math
 import streamlit as st
-from datetime import datetime, timezone
-from app.api.content import supabase_client, list_content
+from supabase import Client
+from api.content import list_content, count_content
 
-def user_page(limit: int = 10):
-    """Simple reader UI that shows published content in a card-like format."""
-    st.title("📰 Latest Articles")
+def _tip_label(text: str, tip: str) -> str:
+    # simple tooltip using HTML title attr
+    return f"{text} <span style='color:#9aa0a6' title='{tip}'>ℹ️</span>"
 
-    q = st.text_input("Search articles", key="user_search")
-    tag_filter = st.text_input("Filter by tag (optional)", key="user_tag")
+def _badge(text: str) -> str:
+    return (
+        "<span style='background:#eef2ff;border:1px solid #dbeafe;color:#1e40af;"
+        "padding:2px 8px;border-radius:999px;font-size:12px;margin-right:8px;white-space:nowrap;'>"
+        f"{text}</span>"
+    )
 
-    # create a server-side supabase client using service role
+def _tag_chip(text: str) -> str:
+    return (
+        "<span style='background:#f4f4f5;border:1px solid #e7e7ea;color:#3f3f46;"
+        "padding:2px 8px;border-radius:999px;font-size:12px;margin:0 6px 6px 0;display:inline-block;'>"
+        f"{text}</span>"
+    )
+
+def _content_card(row: dict):
+    with st.container():
+        c1, c2 = st.columns([1, 3], vertical_alignment="center")
+        with c1:
+            img = row.get("image_url")
+            if img:
+                st.image(img, use_container_width=True)
+        with c2:
+            # title
+            st.markdown(f"### {row.get('title') or 'Untitled'}")
+
+            # meta badges (type / ticker / date)
+            meta_html = ""
+            if row.get("content_type"):
+                meta_html += _badge(row["content_type"])
+            if row.get("ticker"):
+                meta_html += _badge(row["ticker"])
+            if row.get("published_at"):
+                meta_html += _badge(f"📅 {row['published_at']}")
+            if meta_html:
+                st.markdown(meta_html, unsafe_allow_html=True)
+
+            # excerpt
+            if row.get("excerpt"):
+                st.write(row["excerpt"])
+
+            # tags
+            tags = row.get("tags") or []
+            if tags:
+                tag_html = "".join(_tag_chip(t) for t in tags)
+                st.markdown(tag_html, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+def user_page(supabase: Client = None):
+    if supabase is None:
+        st.error("Supabase client missing: router must call user_page(supabase=supabase).")
+        st.stop()
+
+    st.title("🏠 Home")
+    st.caption("Latest content from your database.")
+
+    # ── Filters in a single slim row ──────────────────────────────────────────
+    f1, f2, f3, f4 = st.columns([1.0, 1.6, 1.6, 0.6])
+    with f1:
+        ticker = st.text_input("Filter by ticker", value="", placeholder="e.g., AAPL").upper().strip() or None
+    with f2:
+        tags_any = st.multiselect(
+            "Tags (any)",
+            options=[
+                "news","analysis","education","portfolio_tip","market_update","opinion",
+                "ai","semiconductors","rsi","macd","diversification","macro"
+            ],
+        ) or None
+    with f3:
+        search = st.text_input("Search title/excerpt", value="", placeholder="e.g., NVDA, RSI, CPI") or None
+    with f4:
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        apply_clicked = st.button("Apply", use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Compact pagination bar (one line) ─────────────────────────────────────
+    if "content_page" not in st.session_state:
+        st.session_state.content_page = 1
+
+    if apply_clicked:
+        st.session_state.content_page = 1
+
+    # small page-size selector (label collapsed)
+    pcol_l, pcol_prev, pcol_mid, pcol_next, pcol_ps = st.columns([0.6, 0.6, 2.2, 0.6, 1.0])
+
+    with pcol_ps:
+        page_size = st.selectbox("", [6, 12, 24], index=1, label_visibility="collapsed")
+    # Count total AFTER we know page_size for page math
     try:
-        supabase = supabase_client()
+        total_rows = count_content(supabase, ticker=ticker, tags_any=tags_any, search=search, only_published=True)
     except Exception as e:
-        st.error(f"Server misconfiguration: {e}")
+        st.error(f"Failed to count content: {e}")
+        st.stop()
+
+    total_pages = max(1, math.ceil(total_rows / page_size))
+
+    with pcol_prev:
+        prev_disabled = st.session_state.content_page <= 1
+        if st.button("←", disabled=prev_disabled):
+            st.session_state.content_page = max(1, st.session_state.content_page - 1)
+
+    with pcol_mid:
+        st.caption(f"{total_rows} item(s) • Page {st.session_state.content_page} of {total_pages}")
+
+    with pcol_next:
+        next_disabled = st.session_state.content_page >= total_pages
+        if st.button("→", disabled=next_disabled):
+            st.session_state.content_page = min(total_pages, st.session_state.content_page + 1)
+
+    st.markdown("---")
+
+    # ── Data fetch ────────────────────────────────────────────────────────────
+    try:
+        rows = list_content(
+            supabase,
+            page=st.session_state.content_page,
+            page_size=page_size,
+            ticker=ticker,
+            tags_any=tags_any,
+            search=search,
+            only_published=True,
+        )
+    except Exception as e:
+        st.error(f"Failed to fetch content: {e}")
+        st.stop()
+
+    # ── Render header with tooltip (markdown to allow HTML) ───────────────────
+    st.markdown(
+        f"### {_tip_label('Latest content', 'Direct from the content table.')}",
+        unsafe_allow_html=True
+    )
+
+    if not rows:
+        st.info("No content found with the current filters.")
         return
 
-    # fetch using wrapper
-    res = list_content(supabase, published_only=True, limit=200)
-    if res.get("error"):
-        st.error(f"Failed to fetch content: {res['error']}")
-        data = res.get("data") or []
-    else:
-        data = res.get("data") or []
-
-    # filter published only and not-in-future
-    now_iso = datetime.now(timezone.utc).isoformat()
-    articles = [a for a in data if a.get("published_at")]
-    articles = [a for a in articles if a.get("published_at") <= now_iso]
-
-    if tag_filter:
-        tf = tag_filter.lower()
-        articles = [a for a in articles if any(tf in (t or "").lower() for t in (a.get("tags") or []))]
-
-    if q:
-        ql = q.lower()
-        articles = [a for a in articles if ql in (a.get("title") or "").lower() or ql in (a.get("body") or "").lower()]
-
-    if not articles:
-        st.info("No published articles found.")
-        return
-
-    for art in articles[:limit]:
-        cols = st.columns([1, 3])
-        if art.get("image_url"):
-            with cols[0]:
-                st.image(art.get("image_url"), use_column_width=True)
-        with cols[1]:
-            st.markdown(f"### {art.get('title')}")
-            st.markdown(f"_{art.get('excerpt') or ''}_")
-            meta = []
-            if art.get("tags"):
-                meta.append("Tags: " + ", ".join(art.get("tags")))
-            if art.get("ticker"):
-                meta.append("Ticker: " + art.get("ticker"))
-            if meta:
-                st.caption(" · ".join(meta))
-            if st.button("Read more", key=f"read_{art.get('id')}"):
-                st.markdown(art.get("body") or "")
-                st.write("---")
-
-
-# If you want the page to run when streamlit runs the file:
-if __name__ == "__main__":
-    user_page(10)
+    for row in rows:
+        _content_card(row)
