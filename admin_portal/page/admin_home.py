@@ -2,14 +2,14 @@
 from __future__ import annotations
 import math
 import streamlit as st
-from typing import Optional, List, Dict, Any
-from supabase import Client
+from typing import Optional
+from sqlalchemy.engine import Engine
+
 from api.admin_content import (
     admin_list_content, admin_count_content,
     admin_create_content, admin_update_content, admin_delete_content,
 )
 
-# ---------- UI helpers ----------
 def _compact_css():
     st.markdown(
         """
@@ -32,17 +32,16 @@ def _tag_str(tags) -> str:
 def _pill(text: str) -> str:
     return f"<span class='badge'>{text}</span>"
 
-# ---------- Main renderer ----------
-def page(supabase: Optional[Client] = None):
-    if supabase is None:
-        st.error("Supabase client missing: router must call *_page(supabase=supabase).")
+def page(rds: Optional[Engine] = None, **kwargs):
+    _ = kwargs
+    if rds is None:
+        st.error("RDS engine is required: router must call page(rds=engine).")
         st.stop()
 
     _compact_css()
     st.title("🛠️ Admin — Content Manager")
     st.caption("Create, edit, publish, and delete content shown on the user Home page.")
 
-    # ── Create new content (compact form) ─────────────────────────────────────
     with st.expander("➕ Create new content", expanded=False):
         c1, c2 = st.columns([1.4, 1.0])
         with c1:
@@ -51,8 +50,13 @@ def page(supabase: Optional[Client] = None):
             new_excerpt = st.text_input("Excerpt (optional)")
             new_image = st.text_input("Image URL (optional)")
         with c2:
-            new_ticker = st.text_input("Ticker (optional)").upper().strip()
-            new_type = st.selectbox("Type", ["analysis","news","education","portfolio_tip","market_update","opinion"], index=0)
+            new_tkr_in = st.text_input("Ticker (optional)")
+            new_ticker = (new_tkr_in or "").upper().strip() or None
+            new_type = st.selectbox(
+                "Type",
+                ["analysis","news","education","portfolio_tip","market_update","opinion"],
+                index=0
+            )
             new_tags_csv = st.text_input("Tags (comma-separated)")
             publish_now = st.checkbox("Publish now?", value=True)
         new_body = st.text_area("Body (Markdown)", height=140, placeholder="Write your content here…")
@@ -63,13 +67,13 @@ def page(supabase: Optional[Client] = None):
             else:
                 try:
                     row = admin_create_content(
-                        supabase,
+                        rds,
                         title=new_title, body=new_body,
                         author_id=None,
                         slug=new_slug or None,
                         excerpt=new_excerpt or None,
                         image_url=new_image or None,
-                        ticker=new_ticker or None,
+                        ticker=new_ticker,
                         tags=new_tags_csv,
                         content_type=new_type,
                         publish_now=publish_now,
@@ -81,12 +85,12 @@ def page(supabase: Optional[Client] = None):
 
     st.markdown("<hr class='row-hr' />", unsafe_allow_html=True)
 
-    # ── Filters (single row) ─────────────────────────────────────────────────
     f1, f2, f3, f4, f5 = st.columns([1.2, 1.0, 1.0, 1.2, 0.6])
     with f1:
-        search = st.text_input("Search title/slug/excerpt", placeholder="e.g., NVDA, RSI")
+        search = st.text_input("Search title/slug/excerpt", placeholder="e.g., NVDA, RSI") or None
     with f2:
-        ticker = st.text_input("Ticker", placeholder="e.g., AAPL").upper().strip() or None
+        t_in = st.text_input("Ticker", placeholder="e.g., AAPL")
+        ticker = (t_in or "").upper().strip() or None
     with f3:
         ctype = st.selectbox("Type", ["(any)","analysis","news","education","portfolio_tip","market_update","opinion"], index=0)
         content_type = None if ctype == "(any)" else ctype
@@ -98,7 +102,6 @@ def page(supabase: Optional[Client] = None):
 
     st.markdown("<hr class='row-hr' />", unsafe_allow_html=True)
 
-    # ── Pagination (compact) ─────────────────────────────────────────────────
     if "admin_content_page" not in st.session_state:
         st.session_state.admin_content_page = 1
     if "admin_page_size" not in st.session_state:
@@ -117,7 +120,7 @@ def page(supabase: Optional[Client] = None):
 
     try:
         total_rows = admin_count_content(
-            supabase, search=search or None, ticker=ticker,
+            rds, search=search, ticker=ticker,
             content_type=content_type, status=status
         )
     except Exception as e:
@@ -137,13 +140,12 @@ def page(supabase: Optional[Client] = None):
 
     st.markdown("<hr class='row-hr' />", unsafe_allow_html=True)
 
-    # ── Data fetch ────────────────────────────────────────────────────────────
     try:
         rows = admin_list_content(
-            supabase,
+            rds,
             page=st.session_state.admin_content_page,
             page_size=st.session_state.admin_page_size,
-            search=search or None, ticker=ticker,
+            search=search, ticker=ticker,
             content_type=content_type, status=status,
         )
     except Exception as e:
@@ -154,7 +156,6 @@ def page(supabase: Optional[Client] = None):
         st.info("No content found.")
         return
 
-    # ── Table-like cards with inline edit/delete ─────────────────────────────
     for r in rows:
         with st.container():
             top = st.columns([3, 1.8, 1.2, 1.1, 0.9, 0.9])
@@ -190,13 +191,13 @@ def page(supabase: Optional[Client] = None):
                     image = st.text_input("Image URL", value=r.get("image_url") or "", key=f"img_{r['id']}")
                 with e2:
                     tkr_val = (r.get("ticker") or "")
-                    ticker_ed = st.text_input("Ticker", value=tkr_val, key=f"tkr_{r['id']}").upper().strip()
+                    ticker_ed = (st.text_input("Ticker", value=tkr_val, key=f"tkr_{r['id']}") or "").upper().strip()
                     types = ["analysis","news","education","portfolio_tip","market_update","opinion"]
-                    ctype_ed = st.selectbox(
-                        "Type", options=types,
-                        index=max(0, types.index(r.get("content_type") or "analysis")),
-                        key=f"ctype_{r['id']}"
-                    )
+                    try:
+                        idx = types.index(r.get("content_type") or "analysis")
+                    except ValueError:
+                        idx = 0
+                    ctype_ed = st.selectbox("Type", options=types, index=idx, key=f"ctype_{r['id']}")
                     tags_csv = st.text_input("Tags (csv)", value=_tag_str(r.get("tags")), key=f"tags_{r['id']}")
                     pub_now = st.checkbox("Publish now", value=False, key=f"pub_{r['id']}")
                     unpub = st.checkbox("Unpublish (make draft)", value=False, key=f"unpub_{r['id']}")
@@ -207,12 +208,12 @@ def page(supabase: Optional[Client] = None):
                     if st.button("💾 Save", key=f"save_{r['id']}"):
                         try:
                             row = admin_update_content(
-                                supabase, r["id"],
+                                rds, r["id"],
                                 title=title, body=body, slug=slug, excerpt=excerpt,
-                                image_url=image, ticker=ticker_ed, tags=tags_csv,
+                                image_url=image, ticker=ticker_ed or None, tags=tags_csv,
                                 content_type=ctype_ed,
-                                publish_now=pub_now if pub_now else None,
-                                unpublish=unpub if unpub else None,
+                                publish_now=(True if pub_now else None),
+                                unpublish=(True if unpub else None),
                             )
                             st.success(f"Saved: {row.get('title')}")
                             st.rerun()
@@ -221,7 +222,7 @@ def page(supabase: Optional[Client] = None):
                 with bcol2:
                     if st.button("🗑️ Delete", key=f"del_{r['id']}"):
                         try:
-                            admin_delete_content(supabase, r["id"])
+                            admin_delete_content(rds, r["id"])
                             st.success("Deleted.")
                             st.rerun()
                         except Exception as e:
@@ -232,9 +233,9 @@ def page(supabase: Optional[Client] = None):
                     if st.button(f"🚀 {new_state_label}", key=f"toggle_{r['id']}"):
                         try:
                             if is_pub:
-                                admin_update_content(supabase, r["id"], unpublish=True)
+                                admin_update_content(rds, r["id"], unpublish=True)
                             else:
-                                admin_update_content(supabase, r["id"], publish_now=True)
+                                admin_update_content(rds, r["id"], publish_now=True)
                             st.success(f"{new_state_label}ed.")
                             st.rerun()
                         except Exception as e:
@@ -242,13 +243,11 @@ def page(supabase: Optional[Client] = None):
 
         st.markdown("<hr class='row-hr' />", unsafe_allow_html=True)
 
-# ---------- Export entrypoints your router expects ----------
-def admin_home(supabase: Optional[Client] = None):
-    return _render_admin(supabase)
+def admin_home(rds: Optional[Engine] = None, **kwargs):
+    return page(rds=rds, **kwargs)
 
-def admin_page(supabase: Optional[Client] = None):
-    return _render_admin(supabase)
+def admin_page(rds: Optional[Engine] = None, **kwargs):
+    return page(rds=rds, **kwargs)
 
-# Optional alias for consistency
-def user_page(supabase: Optional[Client] = None):
-    return _render_admin(supabase)
+def user_page(rds: Optional[Engine] = None, **kwargs):
+    return page(rds=rds, **kwargs)

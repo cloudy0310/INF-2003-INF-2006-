@@ -1,145 +1,201 @@
-from typing import Optional
+from __future__ import annotations
+from typing import Optional, Dict, Any
 import os
 import pandas as pd
-import requests
+from decimal import Decimal
 
-# Optional: supabase client
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Engine
+
 try:
-    from supabase import create_client
+    import boto3
+    from botocore.config import Config
+    from boto3.dynamodb.conditions import Key
 except Exception:
-    create_client = None
+    boto3 = None
 
-# ---------- Supabase helpers ----------
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE")
+# Load .env and override any existing process envs
+try:
+    from dotenv import load_dotenv, find_dotenv
+    load_dotenv(find_dotenv(usecwd=True), override=True)
+except Exception:
+    pass
 
+# ---------- ENV ----------
+RDS_HOST = os.getenv("RDS_HOST")
+RDS_PORT = int(os.getenv("RDS_PORT", "5432"))
+RDS_DB   = os.getenv("RDS_DB")
+RDS_USER = os.getenv("RDS_USER")
+RDS_PWD  = os.getenv("RDS_PASSWORD")
 
-def supabase_client():
-    if create_client is None or SUPABASE_URL is None or SUPABASE_KEY is None:
-        raise RuntimeError("Supabase client not configured")
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+AWS_REGION = os.getenv("AWS_REGION", "ap-southeast-1")
+DDB_TABLE_STOCK_PRICES = os.getenv("DDB_TABLE_STOCK_PRICES", "stock_prices")
 
+# ---------- CONNECTION HELPERS ----------
+_ENGINE: Optional[Engine] = None
+_DDB_TABLE = None
 
-# ---------- Company Info ----------
-def get_company_info(ticker: str) -> Optional[dict]:
-    """
-    Fetch company info from Supabase table 'companies'
-    """
-    if create_client:
-        sb = supabase_client()
-        resp = sb.table("companies").select("*").eq("ticker", ticker).execute()
-        data = resp.data
-        return data[0] if data else None
-    else:
-        # REST fallback
-        if SUPABASE_URL is None or SUPABASE_KEY is None:
-            return None
-        url = f"{SUPABASE_URL}/rest/v1/companies"
-        headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        params = {"ticker": f"eq.{ticker}"}
-        r = requests.get(url, headers=headers, params=params, timeout=10)
-        if r.status_code == 200:
-            res = r.json()
-            return res[0] if res else None
+def get_rds_engine() -> Engine:
+    global _ENGINE
+    if _ENGINE is not None:
+        return _ENGINE
+    missing = [k for k, v in {
+        "RDS_HOST": RDS_HOST, "RDS_DB": RDS_DB, "RDS_USER": RDS_USER, "RDS_PASSWORD": RDS_PWD
+    }.items() if not v]
+    if missing:
+        raise RuntimeError(f"Missing RDS env vars: {', '.join(missing)}")
+    url = f"postgresql+psycopg2://{RDS_USER}:{RDS_PWD}@{RDS_HOST}:{RDS_PORT}/{RDS_DB}"
+    _ENGINE = create_engine(url, pool_pre_ping=True)
+    return _ENGINE
+
+def _clean_env(name: str) -> Optional[str]:
+    v = os.getenv(name)
+    if v is None:
         return None
+    v = v.strip()
+    if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+        v = v[1:-1]
+    return v
 
+def _assert_aws_creds_present():
+    akid   = _clean_env("AWS_ACCESS_KEY_ID") or ""
+    secret = _clean_env("AWS_SECRET_ACCESS_KEY") or ""
+    token  = _clean_env("AWS_SESSION_TOKEN") or ""
+    problems = []
+    if len(akid) < 16:
+        problems.append(f"AWS_ACCESS_KEY_ID looks too short (len={len(akid)})")
+    if len(secret) < 20:
+        problems.append(f"AWS_SECRET_ACCESS_KEY looks too short (len={len(secret)})")
+    if akid.startswith("ASIA") and not token:
+        problems.append("AWS_SESSION_TOKEN missing for temporary ASIA keys")
+    if problems:
+        raise RuntimeError("Bad AWS credentials: " + "; ".join(problems))
 
-# ---------- Financials ----------
+def _make_boto3_session():
+    for key in ["AWS_ACCESS_KEY_ID","AWS_SECRET_ACCESS_KEY","AWS_SESSION_TOKEN","AWS_REGION","AWS_DEFAULT_REGION"]:
+        val = _clean_env(key)
+        if val is not None:
+            os.environ[key] = val
+
+    _assert_aws_creds_present()
+
+    region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "ap-southeast-1"
+    if region.endswith(("a","b","c","d","e","f","g")) and region.count("-") == 2:
+        region = region.rsplit("-", 1)[0]
+        os.environ["AWS_REGION"] = region
+
+    cfg = Config(region_name=region, retries={"max_attempts": 10, "mode": "adaptive"})
+    return boto3.session.Session(
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        aws_session_token=os.getenv("AWS_SESSION_TOKEN") or None,
+        region_name=region
+    ), cfg
+
+def get_ddb_table():
+    global _DDB_TABLE
+    if _DDB_TABLE is not None:
+        return _DDB_TABLE
+    if boto3 is None:
+        raise RuntimeError("boto3 not installed")
+    sess, cfg = _make_boto3_session()
+    sess.client("sts", config=cfg).get_caller_identity()
+    ddb_res = sess.resource("dynamodb", region_name=sess.region_name)
+    _DDB_TABLE = ddb_res.Table(DDB_TABLE_STOCK_PRICES)
+    return _DDB_TABLE
+
+# ---------- RDS QUERIES ----------
+def get_company_info(ticker: str) -> Optional[dict]:
+    eng = get_rds_engine()
+    sql = text("""
+        SELECT *
+        FROM public.companies
+        WHERE ticker = :ticker
+        LIMIT 1
+    """)
+    with eng.connect() as conn:
+        row = conn.execute(sql, {"ticker": ticker}).mappings().first()
+        return dict(row) if row else None
+
 def get_financials(ticker: str) -> pd.DataFrame:
-    """
-    Fetch financial statements from 'financials' table
-    """
-    if create_client:
-        sb = supabase_client()
-        resp = sb.table("financials").select("*").eq("ticker", ticker).order("period_end", desc=True).execute()
-        data = resp.data
-        return pd.DataFrame(data) if data else pd.DataFrame()
-    else:
-        if SUPABASE_URL is None or SUPABASE_KEY is None:
-            return pd.DataFrame()
-        url = f"{SUPABASE_URL}/rest/v1/financials"
-        headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        params = {"ticker": f"eq.{ticker}", "order": "period_end.desc"}
-        r = requests.get(url, headers=headers, params=params, timeout=10)
-        if r.status_code == 200:
-            return pd.DataFrame(r.json())
-        return pd.DataFrame()
+    eng = get_rds_engine()
+    sql = text("""
+        SELECT *
+        FROM public.financials
+        WHERE ticker = :ticker
+        ORDER BY period_end DESC
+    """)
+    with eng.connect() as conn:
+        df = pd.read_sql_query(sql, conn, params={"ticker": ticker})
+    return df
 
+# ---------- DDB: STOCK PRICES ----------
+def _coerce_decimal(obj: Any):
+    if isinstance(obj, list):
+        return [_coerce_decimal(v) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _coerce_decimal(v) for k, v in obj.items()}
+    if isinstance(obj, Decimal):
+        return int(obj) if obj == obj.to_integral_value() else float(obj)
+    return obj
 
-# ---------- Stock Prices ----------
-def _to_bool_series(s: pd.Series) -> pd.Series:
-    """Robustly coerce a Series to boolean using common representations."""
-    if s.dtype == "bool":
-        return s.fillna(False)
-    mapping = {
-        True: True, 't': True, 'T': True, 'true': True, 'True': True, 'TRUE': True, '1': True, 1: True,
-        False: False, 'f': False, 'F': False, 'false': False, 'False': False, '0': False, 0: False
-    }
-    return s.map(lambda v: mapping.get(v, False)).astype(bool)
-
+def _to_bool(val: Any) -> bool:
+    truey = {True, "true", "True", "TRUE", "t", "T", "1", 1}
+    falsy = {False, "false", "False", "FALSE", "f", "F", "0", 0, None}
+    if val in truey:
+        return True
+    if val in falsy:
+        return False
+    return False
 
 def get_stock_prices(ticker: str, start: str = None, end: str = None, limit: int = 10000) -> pd.DataFrame:
-    """
-    Fetch stock prices for a ticker. Returns a DataFrame with:
-      - date parsed to pd.Timestamp
-      - numeric columns coerced
-      - buy_signal / sell_signal as bool
-      - sorted ascending by date (ready for plotting)
-    Supports supabase client and REST fallback.
-    """
-    # --- Fetch data ---
-    df = pd.DataFrame()
-    if create_client:
-        sb = supabase_client()
-        query = sb.table("stock_prices").select("*").eq("ticker", ticker).order("date", desc=True)
-        if start:
-            query = query.gte("date", start)
-        if end:
-            query = query.lte("date", end)
-        if limit:
-            query = query.limit(limit)
-        resp = query.execute()
-        data = getattr(resp, "data", None)
-        df = pd.DataFrame(data) if data else pd.DataFrame()
-    else:
-        if SUPABASE_URL is None or SUPABASE_KEY is None:
-            raise RuntimeError("Supabase client not configured and REST credentials missing")
-        url = f"{SUPABASE_URL}/rest/v1/stock_prices"
-        headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        params = {"ticker": f"eq.{ticker}", "order": "date.desc", "limit": str(limit)}
-        if start:
-            params["date"] = f"gte.{start}"
-        if end:
-            params["date"] = f"lte.{end}"
-        r = requests.get(url, headers=headers, params=params, timeout=10)
-        r.raise_for_status()
-        df = pd.DataFrame(r.json())
+    table = get_ddb_table()
+    start_key = start or "0000-01-01"
+    end_key   = end or "9999-12-31"
+    kwargs: Dict[str, Any] = {
+        "KeyConditionExpression": Key("ticker").eq(ticker) & Key("date").between(start_key, end_key),
+        "ScanIndexForward": True
+    }
+    if limit and limit > 0:
+        kwargs["Limit"] = limit
 
-    if df.empty:
+    items = []
+    resp = table.query(**kwargs)
+    items.extend(resp.get("Items", []))
+    while "LastEvaluatedKey" in resp and (not limit or len(items) < limit):
+        next_kwargs = dict(kwargs)
+        next_kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+        if limit:
+            next_kwargs["Limit"] = max(1, limit - len(items))
+        resp = table.query(**next_kwargs)
+        items.extend(resp.get("Items", []))
+
+    if not items:
         return pd.DataFrame()
 
-    # --- Normalize types ---
-    # Parse date
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-    # drop rows with invalid date
-    df = df.dropna(subset=['date'])
-    # Coerce numeric columns
-    numeric_cols = ['open', 'high', 'low', 'close', 'volume', 'bb_sma_20', 'bb_upper_20', 'bb_lower_20',
-                    'rsi_14', 'macd', 'macd_signal', 'macd_hist']
+    df = pd.DataFrame([_coerce_decimal(i) for i in items])
+    if "date" not in df.columns:
+        raise RuntimeError("DynamoDB item missing 'date' attribute")
+
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
+
+    numeric_cols = [
+        "open","high","low","close","volume",
+        "bb_sma_20","bb_upper_20","bb_lower_20",
+        "rsi_14","macd","macd_signal","macd_hist"
+    ]
     for col in numeric_cols:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Drop rows without valid OHLC (defensive) so latest_date is meaningful
-    if all(c in df.columns for c in ['open', 'high', 'low', 'close']):
-        df = df.dropna(subset=['open', 'high', 'low', 'close'])
-    # Ensure buy/sell columns exist and are boolean
-    for col in ['buy_signal', 'sell_signal']:
+    for col in ["buy_signal", "sell_signal"]:
         if col in df.columns:
-            df[col] = _to_bool_series(df[col])
+            df[col] = df[col].map(_to_bool)
         else:
             df[col] = False
 
-    # Sort ascending for plotting (older -> newer)
-    df = df.sort_values('date').reset_index(drop=True)
+    df = df.sort_values("date").reset_index(drop=True)
+    if all(c in df.columns for c in ["open","high","low","close"]):
+        df = df.dropna(subset=["open","high","low","close"])
     return df
