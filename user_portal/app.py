@@ -1,9 +1,12 @@
 import os
+import sys
 import importlib
 import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client
 from streamlit_option_menu import option_menu
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
 
 # --- Load environment variables ---
 load_dotenv()

@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 from supabase import create_client
 from streamlit_option_menu import option_menu
 
+import sys
+from pathlib import Path
+BASE = Path(__file__).resolve().parent          # .../admin_portal
+ROOT = BASE.parent                               # repo root (contains user_portal/)
+sys.path.insert(0, str(BASE))                    # import admin_portal.api / page
+sys.path.insert(0, str(ROOT))
+
 # --- Load environment variables ---
 load_dotenv()
 supabase_url = os.getenv("SUPABASE_URL")

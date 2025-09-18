@@ -1,4 +1,4 @@
-# app/api/display_news.py
+# user_portal/api/display_news.py
 from __future__ import annotations
 import os
 import requests
@@ -60,9 +60,28 @@ def list_news(
     r.raise_for_status()
     return r.json()
 
-def get_daily_summary(day: date) -> Optional[Dict]:
-    params = {"day": f"eq.{day.isoformat()}"}
-    r = requests.get(f"{REST}/news_daily_summary", headers=HDRS, params=params, timeout=15)
+def get_daily_summary(day: date):
+    """Return summary for `day`, or the most recent prior day if missing."""
+    base = f"{REST}/news_daily_summary"
+
+    # 1) exact day
+    p1 = {"day": f"eq.{day.isoformat()}", "limit": "1"}
+    r = requests.get(base, headers=HDRS, params=p1, timeout=15)
     r.raise_for_status()
     data = r.json()
-    return data[0] if data else None
+    if data:
+        return data[0]
+
+    # 2) fallback: latest <= day
+    p2 = {
+        "select": "*",
+        "day": f"lte.{day.isoformat()}",
+        "order": "day.desc",
+        "limit": "1",
+    }
+    r2 = requests.get(base, headers=HDRS, params=p2, timeout=15)
+    r2.raise_for_status()
+    data2 = r2.json()
+    return data2[0] if data2 else None
+
+

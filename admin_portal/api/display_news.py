@@ -1,4 +1,4 @@
-# app/api/display_news.py
+# admin_portal/api/display_news.py
 from __future__ import annotations
 import os
 import requests
