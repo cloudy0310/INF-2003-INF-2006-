@@ -8,3 +8,5 @@ python-dotenv
 supabase
 psycopg2-binary
 streamlit-option-menu
+sqlalchemy
+boto3

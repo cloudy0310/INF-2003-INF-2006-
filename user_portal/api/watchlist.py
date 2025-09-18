@@ -1,86 +1,104 @@
 # api/watchlist.py
 from __future__ import annotations
 from typing import List, Dict, Tuple
-from supabase import Client
+from sqlalchemy.engine import Engine
+from sqlalchemy import text, bindparam
 
-def get_or_create_default_watchlist(sb: Client, user_id: str) -> Dict:
-    """
-    Ensure one watchlist per user at the app level.
-    Returns the latest/created watchlist row.
-    """
-    res = (
-        sb.table("watchlists")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-    if res.data:
-        return res.data[0]
 
-    payload = {"user_id": user_id, "name": "default", "description": "User default watchlist"}
-    created = sb.table("watchlists").insert(payload).select("*").single().execute()
-    return created.data
+def get_or_create_default_watchlist(rds: Engine, user_id: str) -> Dict:
+    sql_sel = text("""
+        SELECT watchlist_id, user_id, name, description, created_at
+        FROM public.watchlists
+        WHERE user_id = :uid
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+    sql_ins = text("""
+        INSERT INTO public.watchlists (user_id, name, description)
+        VALUES (:uid, 'default', 'User default watchlist')
+        RETURNING watchlist_id, user_id, name, description, created_at
+    """)
+    with rds.begin() as conn:
+        row = conn.execute(sql_sel, {"uid": user_id}).mappings().first()
+        if row:
+            return dict(row)
+        created = conn.execute(sql_ins, {"uid": user_id}).mappings().first()
+        return dict(created)
 
-def list_watchlist_items(sb: Client, watchlist_id: str) -> Tuple[List[Dict], Dict[str, str]]:
-    """
-    Returns (items, name_map).
-    items: [{watchlist_id,ticker,allocation,added_at}, ...]
-    name_map: {'AAPL': 'Apple Inc', ...} (best-effort from companies)
-    """
-    rows = (
-        sb.table("watchlist_stocks")
-        .select("watchlist_id,ticker,allocation,added_at")
-        .eq("watchlist_id", watchlist_id)
-        .order("added_at")
-        .execute()
-    ).data or []
 
-    tickers = [r["ticker"] for r in rows]
-    name_map: Dict[str, str] = {}
-    if tickers:
-        comps = (
-            sb.table("companies")
-            .select("ticker,name,short_name")
-            .in_("ticker", tickers)
-            .execute()
-        ).data or []
-        for c in comps:
-            name_map[c["ticker"]] = c.get("short_name") or c.get("name") or c["ticker"]
-    return rows, name_map
+def list_watchlist_items(rds: Engine, watchlist_id: str) -> Tuple[List[Dict], Dict[str, str]]:
+    sql_items = text("""
+        SELECT watchlist_id, ticker, allocation, added_at
+        FROM public.watchlist_stocks
+        WHERE watchlist_id = :wid
+        ORDER BY added_at
+    """)
+    with rds.connect() as conn:
+        items = [dict(r) for r in conn.execute(sql_items, {"wid": watchlist_id}).mappings().all()]
+        tickers = [r["ticker"] for r in items]
 
-def upsert_watchlist_item(sb: Client, watchlist_id: str, ticker: str, allocation: float) -> None:
-    payload = {
-        "watchlist_id": watchlist_id,
-        "ticker": (ticker or "").upper().strip(),
-        "allocation": float(allocation),
-    }
-    sb.table("watchlist_stocks").upsert(payload, on_conflict="watchlist_id,ticker").execute()
+        name_map: Dict[str, str] = {}
+        if tickers:
+            sql_names = (
+                text("""
+                    SELECT ticker, COALESCE(short_name, name, ticker) AS disp
+                    FROM public.companies
+                    WHERE ticker IN :tickers
+                """)
+                .bindparams(bindparam("tickers", expanding=True))
+            )
+            for r in conn.execute(sql_names, {"tickers": tickers}).mappings().all():
+                name_map[r["ticker"]] = r["disp"]
 
-def delete_watchlist_item(sb: Client, watchlist_id: str, ticker: str) -> None:
-    sb.table("watchlist_stocks").delete() \
-      .eq("watchlist_id", watchlist_id) \
-      .eq("ticker", (ticker or "").upper().strip()) \
-      .execute()
+    print(items,name_map)
+    return items, name_map
 
-def update_watchlist_item(sb: Client, watchlist_id: str, old_ticker: str, new_ticker: str, allocation: float) -> None:
-    """
-    If ticker changed, upsert the new key then delete the old key.
-    If ticker unchanged, just update allocation.
-    """
+
+def upsert_watchlist_item(rds: Engine, watchlist_id: str, ticker: str, allocation: float) -> None:
+    sql = text("""
+        INSERT INTO public.watchlist_stocks (watchlist_id, ticker, allocation)
+        VALUES (:wid, :tkr, :alloc)
+        ON CONFLICT (watchlist_id, ticker)
+        DO UPDATE SET allocation = EXCLUDED.allocation
+    """)
+    with rds.begin() as conn:
+        conn.execute(sql, {"wid": watchlist_id, "tkr": (ticker or "").upper().strip(), "alloc": float(allocation)})
+
+
+def delete_watchlist_item(rds: Engine, watchlist_id: str, ticker: str) -> None:
+    sql = text("""
+        DELETE FROM public.watchlist_stocks
+        WHERE watchlist_id = :wid AND ticker = :tkr
+    """)
+    with rds.begin() as conn:
+        conn.execute(sql, {"wid": watchlist_id, "tkr": (ticker or "").upper().strip()})
+
+
+def update_watchlist_item(rds: Engine, watchlist_id: str, old_ticker: str, new_ticker: str, allocation: float) -> None:
     old_t = (old_ticker or "").upper().strip()
     new_t = (new_ticker or "").upper().strip()
     alloc = float(allocation)
 
     if new_t == old_t:
-        sb.table("watchlist_stocks").update({"allocation": alloc}) \
-          .eq("watchlist_id", watchlist_id).eq("ticker", old_t).execute()
+        sql = text("""
+            UPDATE public.watchlist_stocks
+            SET allocation = :alloc
+            WHERE watchlist_id = :wid AND ticker = :tkr
+        """)
+        with rds.begin() as conn:
+            conn.execute(sql, {"alloc": alloc, "wid": watchlist_id, "tkr": old_t})
         return
 
-    sb.table("watchlist_stocks").upsert(
-        {"watchlist_id": watchlist_id, "ticker": new_t, "allocation": alloc},
-        on_conflict="watchlist_id,ticker"
-    ).execute()
-    sb.table("watchlist_stocks").delete() \
-      .eq("watchlist_id", watchlist_id).eq("ticker", old_t).execute()
+    sql_upsert_new = text("""
+        INSERT INTO public.watchlist_stocks (watchlist_id, ticker, allocation)
+        VALUES (:wid, :tkr, :alloc)
+        ON CONFLICT (watchlist_id, ticker)
+        DO UPDATE SET allocation = EXCLUDED.allocation
+    """)
+    sql_delete_old = text("""
+        DELETE FROM public.watchlist_stocks
+        WHERE watchlist_id = :wid AND ticker = :tkr
+    """)
+    with rds.begin() as conn:
+        conn.execute(sql_upsert_new, {"wid": watchlist_id, "tkr": new_t, "alloc": alloc})
+        conn.execute(sql_delete_old, {"wid": watchlist_id, "tkr": old_t})
