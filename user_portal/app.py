@@ -1,7 +1,7 @@
 import os
 import sys
 import importlib
-o
+import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client
 from streamlit_option_menu import option_menu
