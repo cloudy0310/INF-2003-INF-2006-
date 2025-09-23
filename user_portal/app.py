@@ -1,7 +1,7 @@
 import os
 import sys
 import importlib
-import streamlit as st
+o
 from dotenv import load_dotenv
 from supabase import create_client
 from streamlit_option_menu import option_menu
@@ -25,14 +25,15 @@ if "top_nav_selected" not in st.session_state:
 st.title("📊 My Dashboard")
 
 # --- Define pages and icons ---
-page_options = ["User Home", "News", "Stock Analysis", "Watchlist"]
+page_options = ["User Home", "News", "Stock Analysis", "Watchlist", "Insights"]  # Add the new page here
 page_paths = {
     "User Home": "/page/home",
     "News": "/page/news",
     "Stock Analysis": "/page/stock_analysis",
     "Watchlist": "/page/watchlist",
+    "Insights": "/page/insight",  # Add path for the new page
 }
-page_icons = ["house", "newspaper", "bar-chart", "bookmark"]
+page_icons = ["house", "newspaper", "bar-chart", "bookmark", "search"]  # Add an icon for the new page
 
 # --- Top navigation bar ---
 selected = option_menu(
@@ -63,10 +64,10 @@ try:
         if hasattr(module, "page"):
             module.page(supabase=supabase)
         else:
-            st.error(f"`{module_name}` loaded but missing `page(**kwargs)`.")
+            st.error(f"`{module_name}` loaded but missing `page(**kwargs)`.")  # Handle error if no page function is found
     else:
         st.error(f"Unknown page root for '{page}'. Expected '/page/*'.")
 except ModuleNotFoundError:
-    st.error(f"Page module '{module_name}' not found.")
+    st.error(f"Page module '{module_name}' not found.")  # Handle error if module is not found
 except Exception as e:
-    st.error(f"Failed to render '{module_name}': {e}")
+    st.error(f"Failed to render '{module_name}': {e}")  # Handle other errors during page rendering
