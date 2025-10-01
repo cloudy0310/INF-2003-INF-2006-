@@ -1,28 +1,42 @@
-import streamlit as st
+# page/stock_analysis.py
+from __future__ import annotations
+
+import os
+from datetime import datetime
+
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime
+import streamlit as st
+
+# UI-only page: analytics pulled via api.stock_analysis*, watchlist via api.watchlist
 from api.stock_analysis import get_company_info, get_financials, get_stock_prices
 from api.stock_analysis_helper import evaluate_strategy_for_timeframes
 from api.watchlist import get_or_create_default_watchlist, upsert_watchlist_item
-import os
 
-def _ensure_local_watchlist():
-    if "local_watchlist" not in st.session_state:
-        st.session_state.local_watchlist = set()
+FIXED_USER_ID = os.getenv("WATCHLIST_USER_ID")  # e.g. a UUID in your DB
 
-def page(supabase=None):
+
+def page(rds=None, dynamo=None, supabase=None, **_):
+    """
+    UI-only Stock Analysis page.
+    - Company/financials/prices are fetched by api.* helpers (they decide RDS/Dynamo).
+    - Watchlist mutations are delegated to api.watchlist (requires rds).
+    """
+    if rds is None:
+        st.error("RDS engine not provided to page().")
+        st.stop()
+
     st.title("📈 Stock Analysis Dashboard")
-    st.caption("Demo mode: login removed. Watchlist is stored locally in this browser session.")
+    st.caption("Company & financials from RDS; prices from your store; watchlist updates go through api.watchlist.")
 
-    _ensure_local_watchlist()
-
+    # ----------------- Ticker input -----------------
     ticker = st.text_input("Search Stock Ticker (e.g., AAPL, MSFT)").upper().strip()
     if not ticker:
         st.info("Enter a ticker symbol to start analysis.")
         st.stop()
 
+    # ----------------- Company Overview -----------------
     st.subheader("🏢 Company Overview")
     try:
         company_info = get_company_info(ticker)
@@ -47,6 +61,7 @@ def page(supabase=None):
     else:
         st.warning("No company info found.")
 
+    # ----------------- Financials -----------------
     st.subheader("💰 Key Financials")
     try:
         df_fin = get_financials(ticker)
@@ -60,17 +75,18 @@ def page(supabase=None):
             'revenue': 'Revenue ($M)',
             'net_income': 'Net Income ($M)',
             'eps': 'EPS',
-            'ebitda': 'EBITDA ($M)'
+            'ebitda': 'EBITDA ($M)',
         })
         st.write(df_fin.style.format({
             'Revenue ($M)': "${:,.0f}",
             'Net Income ($M)': "${:,.0f}",
             'EPS': "{:.2f}",
-            'EBITDA ($M)': "${:,.0f}"
+            'EBITDA ($M)': "${:,.0f}",
         }))
     else:
         st.warning("No financial data found.")
 
+    # ----------------- Price History -----------------
     st.subheader("📊 Stock Price History")
     try:
         df_price = get_stock_prices(ticker)
@@ -123,7 +139,7 @@ def page(supabase=None):
         "3Y": latest_date - pd.DateOffset(years=3),
         "5Y": latest_date - pd.DateOffset(years=5),
         "10Y": latest_date - pd.DateOffset(years=10),
-        "All": df_price['date'].min()
+        "All": df_price['date'].min(),
     }
     options = list(date_ranges.keys())
     default_index = options.index("1Y") if "1Y" in options else 0
@@ -134,14 +150,14 @@ def page(supabase=None):
         st.warning("No data for selected date range.")
         st.stop()
 
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.6,0.2,0.2])
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.6, 0.2, 0.2])
     fig.add_trace(go.Candlestick(
         x=df_plot['date'], open=df_plot['open'], high=df_plot['high'],
         low=df_plot['low'], close=df_plot['close'], name='Price',
         increasing_line_color='rgba(0,200,0,1)', decreasing_line_color='rgba(200,0,0,1)', showlegend=False
     ), row=1, col=1)
 
-    if all(c in df_plot.columns for c in ['bb_upper_20','bb_lower_20','bb_sma_20']):
+    if all(c in df_plot.columns for c in ['bb_upper_20', 'bb_lower_20', 'bb_sma_20']):
         fig.add_trace(go.Scatter(x=df_plot['date'], y=df_plot['bb_upper_20'], line=dict(width=1), name='BB Upper', hoverinfo='skip', showlegend=False), row=1, col=1)
         fig.add_trace(go.Scatter(x=df_plot['date'], y=df_plot['bb_lower_20'], line=dict(width=1), name='BB Lower', hoverinfo='skip', showlegend=False), row=1, col=1)
         fig.add_trace(go.Scatter(x=df_plot['date'], y=df_plot['bb_sma_20'], line=dict(width=1, dash='dot'), name='BB SMA', hoverinfo='skip', showlegend=False), row=1, col=1)
@@ -173,9 +189,13 @@ def page(supabase=None):
     fig.update_yaxes(title_text="Price ($)", row=1, col=1)
     fig.update_yaxes(title_text="MACD", row=2, col=1)
     fig.update_yaxes(title_text="RSI", row=3, col=1, range=[0, 100])
-    st.plotly_chart(fig, use_container_width=True, config={"modeBarButtonsToAdd": ["pan2d"], "displaylogo": False, "scrollZoom": True})
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"modeBarButtonsToAdd": ["pan2d"], "displaylogo": False, "scrollZoom": True},
+    )
 
-    # Trading Analysis
+    # ----------------- Trading Analysis -----------------
     st.markdown("---")
     st.subheader("⚖️ Trading Analysis — Mean Reversion Strategy")
 
@@ -229,7 +249,7 @@ def page(supabase=None):
                     "require_all": require_all,
                     "cluster_gap_days": cluster_gap_days,
                     "avg_quantile": avg_quantile,
-                    "greedy_quantile": greedy_quantile
+                    "greedy_quantile": greedy_quantile,
                 }
                 try:
                     results = evaluate_strategy_for_timeframes(df_price, timeframe_map, params=params)
@@ -240,13 +260,13 @@ def page(supabase=None):
             st.subheader("Performance snapshots")
             for tf in selected_tfs:
                 st.markdown(f"### {tf}")
-                cols = st.columns([1,1,1])
+                cols = st.columns([1, 1, 1])
                 cases = ["min", "average", "greedy"]
                 for col, case in zip(cols, cases):
                     with col:
                         tf_res = results.get(tf, {}).get(case, {})
                         metrics = tf_res.get("metrics", {})
-                        if not metrics or metrics.get("num_trades",0) == 0:
+                        if not metrics or metrics.get("num_trades", 0) == 0:
                             st.markdown(f"#### {case.title()}")
                             st.info("No trades")
                         else:
@@ -295,12 +315,12 @@ def page(supabase=None):
                                     "exit_date": "Exit Date",
                                     "entry_price": "Entry Price",
                                     "exit_price": "Exit Price",
-                                    "return_pct": "Return (%)"
+                                    "return_pct": "Return (%)",
                                 })
                                 st.dataframe(df_tr.style.format({
                                     "Entry Price": "{:.2f}",
                                     "Exit Price": "{:.2f}",
-                                    "Return (%)": "{:.2f}"
+                                    "Return (%)": "{:.2f}",
                                 }), height=220)
                         except Exception as e:
                             st.write("Unable to render trade table:", e)
@@ -318,7 +338,7 @@ def page(supabase=None):
                         fig_eq.add_trace(go.Scatter(
                             x=[pd.to_datetime(d) for d in dates], y=values,
                             mode="lines+markers", name=tf,
-                            hovertemplate="%{x|%Y-%m-%d}<br>Equity: %{y:.4f}<extra></extra>"
+                            hovertemplate="%{x|%Y-%m-%d}<br>Equity: %{y:.4f}<extra></extra>",
                         ))
                 if any_series:
                     fig_eq.update_layout(title=f"{case.title()} case — Cumulative equity",
@@ -327,17 +347,18 @@ def page(supabase=None):
                 else:
                     st.info(f"No equity data for {case} case to plot.")
 
-    # -------------------- Add to watchlist --------------------
+    # ----------------- Add to watchlist (delegates to api.watchlist) -----------------
     st.markdown("---")
     st.subheader("Add to watchlist")
 
-    FIXED_USER_ID = os.getenv("WATCHLIST_USER_ID")
-
-    if st.button("➕ Add to watchlist"):
-        try:
-            wl = get_or_create_default_watchlist(supabase, FIXED_USER_ID)
-            upsert_watchlist_item(supabase, wl["watchlist_id"], ticker, 0.0) 
-            st.success(f"Added {ticker} to your watchlist with allocation 0.")
-        except Exception as e:
-            st.error(f"Failed to add {ticker} to watchlist: {e}")
-
+    if not FIXED_USER_ID:
+        st.info("Set WATCHLIST_USER_ID in your environment to enable DB-backed watchlists.")
+    else:
+        if st.button("➕ Add to watchlist"):
+            try:
+                wl = get_or_create_default_watchlist(rds, FIXED_USER_ID)
+                # default allocation 0.0; adjust if you want a field on this page
+                upsert_watchlist_item(rds, wl["watchlist_id"], ticker, 0.0)
+                st.success(f"Added {ticker} to your watchlist.")
+            except Exception as e:
+                st.error(f"Failed to add {ticker} to watchlist: {e}")
