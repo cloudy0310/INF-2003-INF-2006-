@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Streamlit Stack — ALB + Admin/User ASGs (public EC2) + Private RDS + DynamoDB (no IAM)
+Description: Streamlit Stack — ALB + Admin/User ASGs (public EC2) + Private RDS + DynamoDB + SSH (no IAM)
 
 Parameters:
   DBUsername:
@@ -10,6 +10,18 @@ Parameters:
     Type: String
     NoEcho: true
     Description: Master password for RDS
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 Key Pair to enable SSH
+  AllowedSSHLocation:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: CIDR allowed to SSH (22) to instances (e.g., your.ip.addr.0/24)
+
+Mappings:
+  RegionMap:
+    ap-southeast-1:
+      AL2AMI: ami-06018068a18569ff2
 
 Resources:
   # ---------------- VPC & Subnets ----------------
@@ -93,7 +105,6 @@ Resources:
       SubnetId: !Ref PublicSubnetB
       RouteTableId: !Ref PublicRouteTable
 
-  # Private route table (no internet route; RDS doesn't need it)
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties: { VpcId: !Ref VPC }
@@ -122,13 +133,17 @@ Resources:
   EC2SG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow HTTP from ALB
+      GroupDescription: Allow HTTP from ALB and SSH from AllowedSSHLocation
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           SourceSecurityGroupId: !Ref ALBSG
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedSSHLocation
 
   RDSSG:
     Type: AWS::EC2::SecurityGroup
@@ -146,8 +161,9 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-06018068a18569ff2       # Amazon Linux 2 in ap-southeast-1
+        ImageId: !FindInMap [RegionMap, ap-southeast-1, AL2AMI]
         InstanceType: t3.micro
+        KeyName: !Ref KeyPairName
         SecurityGroupIds: [!Ref EC2SG]
         NetworkInterfaces:
           - DeviceIndex: 0
@@ -170,8 +186,9 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-06018068a18569ff2
+        ImageId: !FindInMap [RegionMap, ap-southeast-1, AL2AMI]
         InstanceType: t3.micro
+        KeyName: !Ref KeyPairName
         SecurityGroupIds: [!Ref EC2SG]
         NetworkInterfaces:
           - DeviceIndex: 0

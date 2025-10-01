@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-# etl/fetch_financials.py
+# pipeline/fetch_financials.py
 from __future__ import annotations
+
 import os
 import json
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
+
 import pandas as pd
 import yfinance as yf
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Optional libs
+# ---------- optional libs ----------
 try:
     import psycopg2
     import psycopg2.extras as pg_extras
@@ -32,6 +34,8 @@ except Exception:
 
 # ---------- config ----------
 DEFAULT_TICKERS = os.environ.get("TICKERS", "AAPL,MSFT")
+TABLE_NAME = os.environ.get("FINANCIALS_TABLE", "financials")
+UNIQUE_CONSTRAINT = os.environ.get("FINANCIALS_UNIQUE_CONSTRAINT", "financials_unique")
 
 # integer-like columns for financials table
 INTEGER_COLS = {"shares_outstanding", "shares_float", "number_of_analysts"}
@@ -52,21 +56,8 @@ def safe_decimal(x, ndigits: int = 2) -> Optional[Decimal]:
         except Exception:
             return None
 
-def chunked(iterable, size=200):
-    it = iter(iterable)
-    while True:
-        chunk = []
-        try:
-            for _ in range(size):
-                chunk.append(next(it))
-        except StopIteration:
-            if chunk:
-                yield chunk
-            break
-        yield chunk
-
-def df_period_dict(df):
-    out = {}
+def df_period_dict(df: Optional[pd.DataFrame]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
     if df is None or df.empty:
         return out
     for col in df.columns:
@@ -90,14 +81,14 @@ def fetch_financials(tickers: List[str]) -> pd.DataFrame:
             tk = yf.Ticker(t)
             fin = tk.financials
             bal = tk.balance_sheet
-            cf = tk.cashflow
+            cf  = tk.cashflow
         except Exception as e:
             print(f"[fetch_financials] {t} error: {e}")
             fin, bal, cf = None, None, None
 
         fin_map = df_period_dict(fin)
         bal_map = df_period_dict(bal)
-        cf_map = df_period_dict(cf)
+        cf_map  = df_period_dict(cf)
 
         all_periods = sorted(set(list(fin_map.keys()) + list(bal_map.keys()) + list(cf_map.keys())))
         if not all_periods:
@@ -112,14 +103,17 @@ def fetch_financials(tickers: List[str]) -> pd.DataFrame:
         for p in all_periods:
             fin_r = fin_map.get(p, {}) or {}
             bal_r = bal_map.get(p, {}) or {}
-            cf_r = cf_map.get(p, {}) or {}
+            cf_r  = cf_map.get(p, {}) or {}
 
             def pnum(x, nd=2):
                 return safe_decimal(x, ndigits=nd) if x is not None else None
 
+            # prefer FY; if you later add quarterly, include period_type in unique key as needed
+            period_dt = pd.to_datetime(p).date()
+
             rows.append({
                 "ticker": t,
-                "period_end": pd.to_datetime(p).date().isoformat(),
+                "period_end": period_dt,  # date object (psycopg2 handles it cleanly)
                 "period_type": "FY",
                 "reported_currency": None,
                 "revenue": pnum(fin_r.get("Total Revenue")) or pnum(fin_r.get("Revenue")),
@@ -141,7 +135,7 @@ def fetch_financials(tickers: List[str]) -> pd.DataFrame:
                 "total_debt": pnum(bal_r.get("Total Debt")),
                 "operating_cashflow": pnum(cf_r.get("Total Cash From Operating Activities")),
                 "capital_expenditures": pnum(cf_r.get("Capital Expenditures")),
-                "free_cash_flow": None,
+                "free_cash_flow": None,  # derive if desired
                 "shares_outstanding": None,
                 "shares_float": None,
                 "market_cap": None,
@@ -157,7 +151,7 @@ def fetch_financials(tickers: List[str]) -> pd.DataFrame:
             })
     return pd.DataFrame(rows)
 
-# ---------- Postgres helpers ----------
+# ---------- Postgres ----------
 def pg_connect():
     if psycopg2 is None:
         raise RuntimeError("psycopg2 required for RDS mode (pip install psycopg2-binary)")
@@ -167,86 +161,107 @@ def pg_connect():
         dbname=os.environ.get("PG_DB"),
         user=os.environ.get("PG_USER"),
         password=os.environ.get("PG_PASS"),
-        connect_timeout=10
+        connect_timeout=10,
+        sslmode=os.environ.get("PG_SSLMODE", "require"),
     )
 
-def pg_create_unique_index_if_needed(conn):
-    sql = "CREATE UNIQUE INDEX IF NOT EXISTS idx_financials_unique ON financials (ticker, period_end);"
+def pg_ensure_unique_constraint(conn):
+    """
+    Ensure a unique constraint over (ticker, period_end) so ON CONFLICT has a valid target.
+    Safe to run repeatedly.
+    """
+    sql = f"""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint c
+            JOIN pg_namespace n ON n.oid = c.connamespace
+            WHERE c.conname = '{UNIQUE_CONSTRAINT}'
+              AND n.nspname = 'public'
+        ) THEN
+            ALTER TABLE public.{TABLE_NAME}
+            ADD CONSTRAINT {UNIQUE_CONSTRAINT} UNIQUE (ticker, period_end);
+        END IF;
+    END$$;
+    """
     with conn.cursor() as cur:
         cur.execute(sql)
     conn.commit()
-    print("[pg] ensured unique index for financials")
+    print(f"[pg] ensured UNIQUE constraint public.{TABLE_NAME}(ticker, period_end) as {UNIQUE_CONSTRAINT}")
 
 def pg_upsert_financials(conn, df: pd.DataFrame):
     if df is None or df.empty:
         print("[pg] no financials to upsert")
         return
+
     cols = [
-        "ticker","period_end","period_type","reported_currency","revenue","cost_of_revenue","gross_profit","operating_income","net_income",
-        "eps_basic","eps_diluted","ebitda","gross_margin","operating_margin","ebitda_margin","net_profit_margin","total_assets",
-        "total_liabilities","total_equity","cash_and_equivalents","total_debt","operating_cashflow","capital_expenditures","free_cash_flow",
-        "shares_outstanding","shares_float","market_cap","price_to_earnings","forward_pe","peg_ratio","revenue_growth","earnings_growth",
-        "number_of_analysts","recommendation_mean","fetched_at","raw_json"
+        "ticker","period_end","period_type","reported_currency","revenue","cost_of_revenue","gross_profit",
+        "operating_income","net_income","eps_basic","eps_diluted","ebitda","gross_margin","operating_margin",
+        "ebitda_margin","net_profit_margin","total_assets","total_liabilities","total_equity",
+        "cash_and_equivalents","total_debt","operating_cashflow","capital_expenditures","free_cash_flow",
+        "shares_outstanding","shares_float","market_cap","price_to_earnings","forward_pe","peg_ratio",
+        "revenue_growth","earnings_growth","number_of_analysts","recommendation_mean","fetched_at","raw_json"
     ]
+
     for c in cols:
         if c not in df.columns:
             df[c] = None
     df = df[cols]
 
-    # coerce integer-like columns to Python ints where possible to avoid Postgres errors
+    # coerce integer-like columns to Python ints where possible
     for ic in INTEGER_COLS:
         if ic in df.columns:
             df[ic] = df[ic].apply(_coerce_int_for_df)
 
+    # build tuples
     values = []
     for _, r in df.iterrows():
-        rowvals = []
+        row = []
         for c in cols:
             v = r[c]
             if pd.isna(v):
-                rowvals.append(None)
+                row.append(None)
             elif isinstance(v, (dict, list)):
-                rowvals.append(pg_extras.Json(v))
+                row.append(pg_extras.Json(v))
             elif isinstance(v, Decimal):
-                rowvals.append(v)
+                row.append(v)
             else:
-                rowvals.append(v)
-        values.append(tuple(rowvals))
+                row.append(v)
+        values.append(tuple(row))
 
     col_sql = ",".join(f'"{c}"' for c in cols)
     template = "(" + ",".join(["%s"] * len(cols)) + ")"
-    update_cols = [c for c in cols if c not in ("ticker","period_end")]
-    if update_cols:
-        set_sql = ",".join(f'"{c}" = EXCLUDED."{c}"' for c in update_cols)
-        on_conflict_sql = f"ON CONFLICT (ticker, period_end) DO UPDATE SET {set_sql}"
-    else:
-        on_conflict_sql = "ON CONFLICT DO NOTHING"
-    sql = f'INSERT INTO financials ({col_sql}) VALUES %s {on_conflict_sql};'
+
+    # do not update the conflict keys
+    dont_update = {"ticker", "period_end"}
+    update_cols = [c for c in cols if c not in dont_update]
+    set_sql = ",".join(f'"{c}" = EXCLUDED."{c}"' for c in update_cols)
+
+    sql = (
+        f'INSERT INTO public.{TABLE_NAME} ({col_sql}) VALUES %s '
+        f'ON CONFLICT ON CONSTRAINT {UNIQUE_CONSTRAINT} DO UPDATE SET {set_sql};'
+    )
 
     with conn.cursor() as cur:
         pg_extras.execute_values(cur, sql, values, template=template)
     conn.commit()
     print(f"[pg] upserted {len(values)} financial rows")
 
-# ---------- coercion helper ----------
+# ---------- coercion ----------
 def _coerce_int_for_df(x):
-    """Coerce DataFrame cell to Python int if integer-valued, otherwise return None or original"""
     if pd.isna(x):
         return None
-    # already int
     if isinstance(x, int) and not isinstance(x, bool):
         return int(x)
-    # float that's integer-like
     if isinstance(x, float):
         return int(x) if x.is_integer() else None
-    # Decimal integer-like
     if isinstance(x, Decimal):
         try:
             fv = float(x)
             return int(fv) if float(fv).is_integer() else None
         except Exception:
             return None
-    # string like "63" or "63.0"
     if isinstance(x, str):
         s = x.strip()
         if s == "":
@@ -256,29 +271,23 @@ def _coerce_int_for_df(x):
             return int(fv) if fv.is_integer() else None
         except Exception:
             return None
-    # numpy integer types
     try:
         import numpy as np
         if isinstance(x, (np.integer,)):
             return int(x)
     except Exception:
         pass
-    # fallback: try int conversion
     try:
         return int(x)
     except Exception:
         return None
 
-# ---------- Supabase upsert (client + REST fallback) ----------
+# ---------- Supabase upsert ----------
 def supabase_upsert(df: pd.DataFrame, table: str, url: str, key: str, on_conflict: str = "ticker,period_end"):
-    """
-    Upsert df into Supabase (PostgREST) with coercion for integer columns.
-    """
     if df is None or df.empty:
         print("[supabase] no rows to upsert")
         return
 
-    # coerce integer-like columns first
     for ic in INTEGER_COLS:
         if ic in df.columns:
             df[ic] = df[ic].apply(_coerce_int_for_df)
@@ -290,35 +299,15 @@ def supabase_upsert(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
         for k, v in r.items():
             if pd.isna(v):
                 nr[k] = None
-                continue
-            if isinstance(v, (dict, list)):
+            elif isinstance(v, (dict, list)):
                 nr[k] = v
-                continue
-            if isinstance(v, Decimal):
-                # convert Decimal -> float for JSON payloads (Supabase)
+            elif isinstance(v, Decimal):
                 try:
                     nr[k] = float(v)
                 except Exception:
                     nr[k] = str(v)
-                continue
-            # numeric strings -> parse
-            if isinstance(v, str):
-                s = v.strip()
-                if s == "":
-                    nr[k] = None
-                    continue
-                try:
-                    if s.lstrip("-").isdigit():
-                        nr[k] = int(s)
-                        continue
-                    fv = float(s)
-                    nr[k] = fv
-                    continue
-                except Exception:
-                    nr[k] = v
-                    continue
-            # leave ints/floats/bools as-is
-            nr[k] = v
+            else:
+                nr[k] = v
         return nr
 
     payloads = [norm(r) for r in records]
@@ -327,12 +316,6 @@ def supabase_upsert(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
     for i in range(0, len(payloads), chunk_size):
         chunk = payloads[i:i+chunk_size]
 
-        # debug sample
-        print(f"[supabase] sample payload (first 3) for chunk {i}-{i+len(chunk)}:")
-        for s in chunk[:3]:
-            print(s)
-
-        # try supabase client upsert first, passing on_conflict
         if create_client is not None:
             try:
                 sb = create_client(url, key)
@@ -340,58 +323,47 @@ def supabase_upsert(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
                 print(f"[supabase-client] upserted chunk {i}-{i+len(chunk)}")
                 continue
             except Exception as e:
-                msg = getattr(e, "args", [str(e)])[0]
-                print("[supabase-client] client failed, falling back to REST:", msg)
+                print("[supabase-client] failed, falling back to REST:", e)
 
-        # REST fallback
         if requests is None:
             raise RuntimeError("requests is required for Supabase REST fallback")
-
         service_key = os.environ.get("SUPABASE_SERVICE_ROLE") or key
         rest_url = url.rstrip("/") + f"/rest/v1/{table}"
         headers = {
             "apikey": service_key,
             "Authorization": f"Bearer {service_key}",
-            "Prefer": "resolution=merge-duplicates, return=representation"
+            "Prefer": "resolution=merge-duplicates, return=representation",
+            "Content-Type": "application/json",
         }
         params = {"on_conflict": on_conflict}
-
-        r = requests.post(rest_url, params=params, headers=headers, json=chunk, timeout=60)
-        text_preview = (r.text[:400] + "...") if r.text and len(r.text) > 400 else r.text
-        print(f"[supabase-rest] chunk {i}-{i+len(chunk)} status={r.status_code} text={text_preview}")
-
+        r = requests.post(rest_url, params=params, headers=headers, data=json.dumps(chunk), timeout=60)
         if r.status_code not in (200, 201):
-            if r.status_code == 400 and "invalid input syntax for type integer" in (r.text or ""):
-                print("[supabase] server rejected payload due to integer parse error. Sample payload (first 10):")
-                for sample in chunk[:10]:
-                    print(sample)
-                raise RuntimeError(f"Supabase REST upsert failed {r.status_code}: {r.text}")
-            if r.status_code == 400 and "no unique or exclusion constraint" in (r.text or ""):
-                raise RuntimeError(f"Supabase REST upsert failed {r.status_code}: missing unique index for on_conflict={on_conflict}. DB error: {r.text}")
-            raise RuntimeError(f"Supabase REST upsert failed {r.status_code}: {r.text}")
+            raise RuntimeError(f"[supabase-rest] failed {r.status_code}: {r.text}")
+        print(f"[supabase-rest] upserted chunk {i}-{i+len(chunk)}")
 
 # ---------- main ----------
 def main():
     tickers = [t.strip() for t in os.environ.get("TICKERS", DEFAULT_TICKERS).split(",") if t.strip()]
     df = fetch_financials(tickers)
+
     use_rds = os.environ.get("USE_RDS", "0") == "1"
     if use_rds:
         conn = pg_connect()
         try:
-            if os.environ.get("CREATE_INDEXES", "0") == "1":
-                pg_create_unique_index_if_needed(conn)
+            pg_ensure_unique_constraint(conn)  # make sure ON CONFLICT target exists
             pg_upsert_financials(conn, df)
         finally:
             conn.close()
         return
 
+    # Supabase mode
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_KEY")
     if not supabase_url or not supabase_key:
-        print("[main] SUPABASE not configured; printing sample")
+        print("[main] SUPABASE not configured; sample rows:")
         print(df.head(5).to_dict(orient="records"))
         return
-    supabase_upsert(df, os.environ.get("SUPABASE_FINANCIALS_TABLE", "financials"), supabase_url, supabase_key)
+    supabase_upsert(df, os.environ.get("SUPABASE_FINANCIALS_TABLE", TABLE_NAME), supabase_url, supabase_key)
 
 if __name__ == "__main__":
     main()
