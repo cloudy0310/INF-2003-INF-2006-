@@ -1,0 +1,301 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Streamlit Stack — ALB + Admin/User ASGs (public EC2) + Private RDS + DynamoDB (no IAM)
+
+Parameters:
+  DBUsername:
+    Type: String
+    Default: dbmaster
+    Description: Master username for RDS (must not be 'admin')
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS
+
+Resources:
+  # ---------------- VPC & Subnets ----------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: StreamlitVPC }]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachIGW:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public subnets (for ALB + EC2)
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1a
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: PublicSubnetA }]
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1b
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: PublicSubnetB }]
+
+  # Private subnets (for RDS)
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1a
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: false
+      Tags: [{ Key: Name, Value: PrivateSubnetA }]
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1b
+      CidrBlock: 10.0.4.0/24
+      MapPublicIpOnLaunch: false
+      Tags: [{ Key: Name, Value: PrivateSubnetB }]
+
+  # Routing
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: { VpcId: !Ref VPC }
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachIGW
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  AssocPublicA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  AssocPublicB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  # Private route table (no internet route; RDS doesn't need it)
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: { VpcId: !Ref VPC }
+
+  AssocPrivateA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  AssocPrivateB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ---------------- Security Groups ----------------
+  ALBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP from internet
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+
+  EC2SG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP from ALB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref ALBSG
+
+  RDSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow PostgreSQL from EC2 SG only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EC2SG
+
+  # ---------------- Launch Templates (no IAM profile) ----------------
+  AdminLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-06018068a18569ff2       # Amazon Linux 2 in ap-southeast-1
+        InstanceType: t3.micro
+        SecurityGroupIds: [!Ref EC2SG]
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            yum update -y
+            yum install -y python3-pip
+            pip3 install streamlit psycopg2-binary
+            mkdir -p /home/ec2-user/app
+            cat >/home/ec2-user/app/app.py <<'PY'
+            import streamlit as st
+            st.title("Admin Streamlit App")
+            st.write("Hello from Admin ASG")
+            PY
+            nohup streamlit run /home/ec2-user/app/app.py --server.port 80 --server.address 0.0.0.0 &
+
+  UserLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-06018068a18569ff2
+        InstanceType: t3.micro
+        SecurityGroupIds: [!Ref EC2SG]
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            yum update -y
+            yum install -y python3-pip
+            pip3 install streamlit psycopg2-binary
+            mkdir -p /home/ec2-user/app
+            cat >/home/ec2-user/app/app.py <<'PY'
+            import streamlit as st
+            st.title("User Streamlit App")
+            st.write("Hello from User ASG")
+            PY
+            nohup streamlit run /home/ec2-user/app/app.py --server.port 80 --server.address 0.0.0.0 &
+
+  # ---------------- ALB & Listeners ----------------
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: [!Ref PublicSubnetA, !Ref PublicSubnetB]
+      SecurityGroups: [!Ref ALBSG]
+
+  UserTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPC
+      Protocol: HTTP
+      Port: 80
+      TargetType: instance
+      HealthCheckPath: /
+
+  AdminTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPC
+      Protocol: HTTP
+      Port: 80
+      TargetType: instance
+      HealthCheckPath: /
+
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref UserTG
+
+  AdminPathRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HTTPListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values: ["/admin*", "/admin/*"]
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AdminTG
+
+  # ---------------- Auto Scaling Groups ----------------
+  UserASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: [!Ref PublicSubnetA, !Ref PublicSubnetB]
+      LaunchTemplate:
+        LaunchTemplateId: !Ref UserLaunchTemplate
+        Version: !GetAtt UserLaunchTemplate.LatestVersionNumber
+      MinSize: "1"
+      MaxSize: "2"
+      DesiredCapacity: "1"
+      TargetGroupARNs: [!Ref UserTG]
+
+  AdminASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: [!Ref PublicSubnetA, !Ref PublicSubnetB]
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AdminLaunchTemplate
+        Version: !GetAtt AdminLaunchTemplate.LatestVersionNumber
+      MinSize: "1"
+      MaxSize: "2"
+      DesiredCapacity: "1"
+      TargetGroupARNs: [!Ref AdminTG]
+
+  # ---------------- Databases ----------------
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for RDS
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: streamlit-db
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: [!Ref RDSSG]
+      PubliclyAccessible: false
+      MultiAZ: false
+
+  StockPricesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: StockPrices
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: Ticker, AttributeType: S }
+        - { AttributeName: Date,   AttributeType: S }
+      KeySchema:
+        - { AttributeName: Ticker, KeyType: HASH }
+        - { AttributeName: Date,   KeyType: RANGE }
+
+Outputs:
+  ALBURL:
+    Description: Access your Streamlit apps via ALB
+    Value: !Sub "http://${ALB.DNSName}"
