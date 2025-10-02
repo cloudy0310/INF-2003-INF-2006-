@@ -9,8 +9,12 @@ from bs4 import BeautifulSoup
 from readability import Document
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
+from google import genai
 
-HF_MODEL = os.getenv("HF_MODEL", "HuggingFaceH4/zephyr-7b-beta")
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+_GEMINI = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # ----------------- Config -----------------
 QUERIES = [
@@ -44,8 +48,6 @@ ARTICLE_HEADERS = {
 
 SUPABASE_URL          = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE")
-HF_TOKEN              = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
-HF_MODEL              = os.getenv("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
 
 REST = f"{SUPABASE_URL}/rest/v1"
 HDRS = {
@@ -321,7 +323,7 @@ def upsert_daily_summary(day: datetime.date, payload: Dict[str, Any]) -> None:
     }), timeout=30)
     r.raise_for_status()
 
-# -------- HF summarizer (optional) --------
+# -------- summarizer (optional) --------
 def _clip(s: str, n: int) -> str:
     s = (s or "").strip().replace("\n", " ")
     return s if len(s) <= n else s[:n] + "…"
@@ -338,130 +340,86 @@ def _get_prev_summary(day: datetime.date) -> Optional[Dict[str, Any]]:
     data = r.json()
     return data[0] if data else None
 
-def summarize_with_hf(articles: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """
-    Build a clean, finance-focused headline pack and summarize it.
-    Produces 2 short paragraphs when possible; never returns a mid-sentence fragment.
-    """
-    if not HF_TOKEN:
+def summarize_with_gemini(articles: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Summarize with Google Gemini (new client) into two short paragraphs."""
+    if not _GEMINI:
         return None
 
-    import re
-    from textwrap import shorten
-
-    # ---- pick recent finance-y items and sanitize titles ----
-    MAX_ARTS   = int(os.getenv("SUMMARY_MAX_ARTS", "10"))
-    MIN_LEN    = int(os.getenv("SUMMARY_MIN_LENGTH", "140"))
-    MAX_LEN    = int(os.getenv("SUMMARY_MAX_LENGTH", "360"))
-    TEMP       = float(os.getenv("SUMMARY_TEMPERATURE", "0.0"))
-    MAX_RETRY  = int(os.getenv("HF_MAX_RETRIES", "5"))
-    TIMEOUT_S  = int(os.getenv("HF_TIMEOUT", "60"))
-
-    FINANCE_SOURCES = {
-        "Reuters","Bloomberg","Financial Times","WSJ","CNBC",
-        "MarketWatch","Yahoo Finance","The Economist"
-    }
-    BAD_TITLE_PAT = re.compile(r"\b(quiz|newsquiz|i\s*report|photo\s*essay|gallery)\b", re.I)
-
-    # newest first
-    arts = sorted(articles, key=lambda a: a.get("published_ts") or 0, reverse=True)
-    # filter out off-topic items
-    filtered = []
-    for a in arts:
-        title = (a.get("title") or "").strip()
-        src   = (a.get("source") or "").strip()
-        if not title or BAD_TITLE_PAT.search(title):
-            continue
-        if src and FINANCE_SOURCES and src not in FINANCE_SOURCES:
-            # keep if it still looks market-relevant
-            if not re.search(r"\b(Nasdaq|S&P|Dow|stocks?|markets?|earnings?|guidance|Fed|Treasur(y|ies))\b", title, re.I):
-                continue
-        filtered.append(a)
-        if len(filtered) >= MAX_ARTS:
-            break
-
-    if not filtered:
-        return None
+    MAX_ARTS = int(os.getenv("SUMMARY_MAX_ARTS", "10"))
+    arts = sorted(articles, key=lambda a: a.get("published_ts") or 0, reverse=True)[:MAX_ARTS]
 
     def _clip(s: str, n: int) -> str:
         s = " ".join((s or "").split())
-        return shorten(s, width=n, placeholder="…")
+        return s if len(s) <= n else s[:n] + "…"
 
-    # Turn the set of titles into a neutral “headline pack”
-    # (instruction-less = fewer copies of the prompt in output)
-    lines = []
-    for a in filtered:
-        src = _clip(a.get("source", ""), 36)
-        ttl = _clip(a.get("title", ""), 140)
-        lines.append(f"- {ttl} ({src})")
+    bullets = []
+    for a in arts:
+        dt = ""
+        if a.get("published_ts"):
+            dt = datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+        bullets.append(f"- [{dt}] {_clip(a.get('title',''), 140)} ({_clip(a.get('source',''), 40)})")
 
-    headline_pack = "\n".join(lines)
+    prompt = (
+        "You are a financial news editor writing a neutral daily market brief. "
+        "Write exactly TWO paragraphs:\n"
+        "1) Recent developments (3–4 full sentences; factual; no quotes)\n"
+        "2) Outlook (2–3 balanced sentences; cautious; no advice/targets)\n"
+        "Do not copy headlines verbatim. No bullets, no meta-text, no ellipses.\n\n"
+        "ARTICLES:\n" + "\n".join(bullets)
+    )
 
-    # Ask an abstractive summarizer for 5–7 sentences; no sampling
-    model   = os.getenv("HF_MODEL", "sshleifer/distilbart-cnn-12-6")
-    api_url = os.getenv("HF_ENDPOINT_URL") or f"https://api-inference.huggingface.co/models/{model}"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    params  = {
-        "min_length": MIN_LEN,
-        "max_length": MAX_LEN,
-        "do_sample": False,
-        "early_stopping": True,
-        "no_repeat_ngram_size": 3,
-        "temperature": TEMP,
-    }
-    payload = {"inputs": headline_pack, "parameters": params}
+    temperature = float(os.getenv("SUMMARY_TEMPERATURE", "0.2"))
+    max_tokens  = int(os.getenv("GEMINI_MAX_TOKENS", "320"))
+    retries     = int(os.getenv("GEMINI_MAX_RETRIES", "4"))
 
-    # Retry wrapper (handles cold starts / 503s gracefully)
-    data = None
-    for attempt in range(MAX_RETRY):
-        try:
-            r = requests.post(api_url, headers=headers, json=payload, timeout=TIMEOUT_S)
-            if r.status_code == 503 and "loading" in (r.text or "").lower():
-                time.sleep(4 + attempt * 3)
-                continue
-            r.raise_for_status()
-            data = r.json()
+    # try the env model first, then a few sensible fallbacks
+    primary   = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
+    fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    models_to_try = [m for i, m in enumerate([primary] + fallbacks) if m and m not in ([primary] + fallbacks)[:i]]
+
+    last_err = None
+    text, used_model = None, None
+
+    for model in models_to_try:
+        for attempt in range(retries):
+            try:
+                resp = _GEMINI.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config={"temperature": temperature, "max_output_tokens": max_tokens}
+                )
+                text = (resp.text or "").strip()
+                if not text:
+                    raise RuntimeError("Empty Gemini response")
+                used_model = model
+                break
+            except Exception as e:
+                last_err = e
+                # If the model isn't available for your key, move on immediately
+                if "404" in str(e) or "not found" in str(e).lower():
+                    break
+                time.sleep(2 * (attempt + 1))
+        if text:
             break
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
-            if attempt == MAX_RETRY - 1:
-                return None
-            time.sleep(4 * (attempt + 1))
-        except requests.HTTPError:
-            if r.status_code in (429, 500, 502, 503, 504) and attempt < MAX_RETRY - 1:
-                time.sleep(4 * (attempt + 1))
-                continue
-            return None
-    if data is None:
-        return None
-
-    # Parse HuggingFace response
-    text = None
-    if isinstance(data, list) and data:
-        text = data[0].get("summary_text") or data[0].get("generated_text")
-    elif isinstance(data, dict):
-        text = data.get("summary_text") or data.get("generated_text")
-    text = (text or "").strip()
-
-    # ---- Post-process: drop stray instruction echoes; end on full stop ----
-    text = re.sub(r"\s+", " ", text)
-    text = re.sub(r"(?i)\b(summarize the following|paragraph\s*1|paragraph\s*2|outlook)\b.*?$", "", text).strip()
-    # cut to last sentence break so you never see "…"
-    m = re.search(r"(.+[\.!?])", text)
-    if m:
-        text = m.group(1)
 
     if not text:
+        print(f"[daily] Gemini summary failed after retries: {last_err}")
         return None
+    else:
+        print(f"[daily] Gemini summary used model={used_model}")
 
-    # Split into ~2 paragraphs (first 3 sentences vs remainder)
-    sents = re.split(r"(?<=[\.!?])\s+", text)
-    p1 = " ".join(sents[:3]).strip()
-    p2 = " ".join(sents[3:]).strip()
+    # Normalize & make sure there are two paragraphs ending cleanly
+    parts = [p.strip() for p in text.replace("\u2026", "...").split("\n\n") if p.strip()]
+    if len(parts) < 2:
+        sents = re.split(r"(?<=[.!?])\s+", text.strip())
+        mid = max(1, len(sents)//2)
+        parts = [" ".join(sents[:mid]), " ".join(sents[mid:])]
+    parts = [(p.rstrip(" .") + ".") for p in parts[:2]]
 
     return {
-        "summary": p1 or text,
-        "outlook": p2,        # UI will hide if empty
-        "article_ids": [article_id_for(a.get("url",""), a.get("title","")) for a in filtered],
+        "summary": parts[0],
+        "outlook": parts[1] if len(parts) > 1 else "",
+        "article_ids": [article_id_for(a.get("url",""), a.get("title","")) for a in arts],
         "sentiment_score": None,
     }
 
@@ -520,7 +478,7 @@ def run(top_k: int = 25, lang="en-US", country="US") -> None:
 
     # -------- upsert to Supabase --------
     rows = []
-    for a in ranked:
+    for a in selected:
         pub_dt = (
             datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)
             if a.get("published_ts") else None
@@ -547,23 +505,23 @@ def run(top_k: int = 25, lang="en-US", country="US") -> None:
 
     # strict "today" first
     todays = [
-        a for a in ranked
+        a for a in selected
         if a.get("published_ts") and
-        datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).date() == today
+           datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).date() == today
     ]
 
-    # then a softer "recent window" (last 36h) if today is empty
     recent_window_h = int(os.getenv("SUMMARY_RECENT_HOURS", "36"))
     recent = [
-        a for a in ranked
-        if a.get("published_ts") and (now - datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)).total_seconds() <= recent_window_h*3600
+        a for a in selected
+        if a.get("published_ts") and
+           (now - datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)).total_seconds() <= recent_window_h * 3600
     ]
 
     cand = todays if todays else recent
-    print(f"[daily] summary candidates — today={len(todays)} recent({recent_window_h}h)={len(recent)} model={os.getenv('HF_MODEL')}")
+    print(f"[daily] summary candidates — today={len(todays)} recent({recent_window_h}h)={len(recent)} model={GEMINI_MODEL}")
 
-    if HF_TOKEN and cand:
-        summ = summarize_with_hf(cand)
+    if GEMINI_API_KEY and cand:
+        summ = summarize_with_gemini(cand)
         if summ:
             upsert_daily_summary(today, summ)
             src = "today" if cand is todays else f"recent{recent_window_h}h"
@@ -577,9 +535,9 @@ def run(top_k: int = 25, lang="en-US", country="US") -> None:
                     "sentiment_score": prev.get("sentiment_score"),
                     "article_ids": prev.get("article_ids", []),
                 })
-                print("[daily] summarizer failed; copied yesterday's summary")
+                print("[daily] Gemini failed; copied yesterday's summary")
             else:
-                print("[daily] summarizer failed and no previous summary to copy")
+                print("[daily] Gemini failed and no previous summary to copy")
     else:
         prev = _get_prev_summary(today)
         if prev:
@@ -589,7 +547,7 @@ def run(top_k: int = 25, lang="en-US", country="US") -> None:
                 "sentiment_score": prev.get("sentiment_score"),
                 "article_ids": prev.get("article_ids", []),
             })
-            print("[daily] no candidates/token; copied yesterday's summary")
+            print("[daily] no candidates/key; copied yesterday's summary")
         else:
             print("[daily] skipped summary (no candidates and no previous summary)")
 
