@@ -10,9 +10,15 @@ def fetch_sector_performance(rds):
     try:
         # Modify this query based on your actual database structure
         query = "SELECT sector, performance FROM sector_performance ORDER BY performance DESC LIMIT 10"
-        # Assuming rds.execute is the method to run queries and fetch data
-        results = rds.execute(query)
-        return results
+        
+        # Fetch the results using SQLAlchemy's execute method
+        with rds.connect() as connection:
+            result = connection.execute(query)
+            results = result.fetchall()
+
+        # Convert results to a list of dictionaries
+        return [{"sector": row['sector'], "performance": row['performance']} for row in results]
+        
     except Exception as e:
         st.error(f"Failed to fetch sector performance: {e}")
         return []
@@ -44,7 +50,8 @@ def insights_page(rds):
         y=performances,
         text=performances,
         textposition='auto',
-        marker_color='blue'
+        marker_color='royalblue',
+        hovertemplate='Sector: %{x}<br>Performance: %{y}%',  # Add custom hover text
     )])
 
     # Add title and labels to the chart
@@ -52,17 +59,19 @@ def insights_page(rds):
         title="Top Performing Sectors",
         xaxis_title="Sector",
         yaxis_title="Performance (%)",
-        template="plotly_dark"
+        template="plotly_dark",
+        plot_bgcolor="rgba(0, 0, 0, 0)",  # Set the background color to transparent
+        margin=dict(l=40, r=40, t=40, b=40)  # Adjust margins
     )
 
     # Display the chart in Streamlit
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
 # ---------- Main Function to Switch Between Tabs ----------
 
 def page(rds=None, dynamo=None):
     """
-    The main function to manage tabs in the Streamlit page. Allows users to switch between Home and Insights.
+    The main function to manage tabs in the Streamlit page.
     """
     if rds is None:
         st.error("RDS engine not provided to page().")
@@ -72,12 +81,10 @@ def page(rds=None, dynamo=None):
     tab = st.selectbox("Select Tab", ["Home", "Insights"])
 
     if tab == "Home":
-        # Show the existing home content (you can call your original home function here)
+        # Placeholder content for Home (you can replace this with actual content)
         st.title("🏠 Home")
         st.caption("Latest content from your RDS database.")
-        # You can call your existing home page function here, e.g. home_page()
-        # home_page(rds)
+        st.write("Home content will be here.")
     elif tab == "Insights":
         # Call the function to display insights
         insights_page(rds)
-
