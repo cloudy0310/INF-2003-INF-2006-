@@ -67,24 +67,3 @@ def insights_page(rds):
     # Display the chart in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-# ---------- Main Function to Switch Between Tabs ----------
-
-def page(rds=None, dynamo=None):
-    """
-    The main function to manage tabs in the Streamlit page.
-    """
-    if rds is None:
-        st.error("RDS engine not provided to page().")
-        st.stop()
-
-    # Selectbox to switch between tabs
-    tab = st.selectbox("Select Tab", ["Home", "Insights"])
-
-    if tab == "Home":
-        # Placeholder content for Home (you can replace this with actual content)
-        st.title("🏠 Home")
-        st.caption("Latest content from your RDS database.")
-        st.write("Home content will be here.")
-    elif tab == "Insights":
-        # Call the function to display insights
-        insights_page(rds)
