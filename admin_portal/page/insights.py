@@ -1,31 +1,46 @@
 import streamlit as st
 import plotly.graph_objects as go
+import pandas as pd
+from sqlalchemy import create_engine
+from datetime import datetime, timedelta, timezone
 
 # ---------- Fetching Sector Performance Data from Database ----------
 
-def fetch_sector_performance(rds):
+@st.cache_data(ttl=900)
+def fetch_sector_performance(days: int, limit: int, page: int):
     """
-    Fetches the top performing sectors from your RDS database.
+    Fetches the top performing sectors from your SQL database.
     """
     try:
-        # Modify this query based on your actual database structure
-        query = "SELECT sector, performance FROM sector_performance ORDER BY performance DESC LIMIT 10"
-        
-        # Fetch the results using SQLAlchemy's execute method
-        with rds.connect() as connection:
+        # Modify this connection string based on your actual database structure
+        engine = create_engine('your_database_connection_string_here')
+
+        # Date range for fetching data
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        query = f"""
+        SELECT sector, performance FROM sector_performance
+        WHERE performance IS NOT NULL
+        ORDER BY performance DESC
+        LIMIT {limit} OFFSET {(page - 1) * limit}
+        """
+
+        # Establishing the connection and executing the query
+        with engine.connect() as connection:
             result = connection.execute(query)
             results = result.fetchall()
-
-        # Convert results to a list of dictionaries
-        return [{"sector": row['sector'], "performance": row['performance']} for row in results]
         
+        # Returning results as a list of dictionaries
+        return [{"sector": row[0], "performance": row[1]} for row in results]
+
     except Exception as e:
         st.error(f"Failed to fetch sector performance: {e}")
         return []
 
 # ---------- Display Insights Page ----------
 
-def insights_page(rds):
+def insights_page():
     """
     This function renders the 'Insights' page in Streamlit, displaying the top-performing sectors
     as a bar chart using Plotly.
@@ -33,11 +48,23 @@ def insights_page(rds):
     st.title("📊 Sector Insights")
     st.caption("View the top-performing sectors based on recent data.")
     
-    # Fetch sector performance data from the RDS
-    sector_data = fetch_sector_performance(rds)
+    # ----------------- Controls -----------------
+    cols = st.columns(5)
+    days = cols[0].selectbox("Range", options=[7, 30, 90], index=1)
+    limit = cols[1].selectbox("Page size", options=[10, 20, 50], index=1)
+    page = cols[2].number_input("Page", min_value=1, value=1, step=1)
+    q = cols[3].text_input("Search", value="", placeholder="keyword…")
+    source = cols[4].text_input("Source", value="", placeholder="e.g., Reuters")
+
+    refresh = st.button("Refresh", use_container_width=False)
+    if refresh:
+        st.cache_data.clear()
+
+    # ----------------- Fetch and Display Data -----------------
+    sector_data = fetch_sector_performance(days, limit, page)
 
     if not sector_data:
-        st.warning("No sector data available.")
+        st.info("No sector data available.")
         return
 
     # Prepare data for Plotly chart
@@ -67,3 +94,24 @@ def insights_page(rds):
     # Display the chart in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
+    # ----------------- Download Current Page -----------------
+    df = pd.DataFrame(sector_data)
+    st.download_button(
+        "Download sector performance CSV",
+        df.to_csv(index=False).encode("utf-8"),
+        file_name="sector_performance.csv",
+        mime="text/csv",
+    )
+
+# ---------- Main Streamlit Application ----------
+
+def main():
+    """
+    The main function to launch the Streamlit app.
+    """
+    # Call the Insights page function to display it
+    insights_page()
+
+# Run the Streamlit app
+if __name__ == "__main__":
+    main()
