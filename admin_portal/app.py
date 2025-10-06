@@ -62,15 +62,16 @@ if "top_nav_selected" not in st.session_state:
 
 st.title("📊 My Dashboard")
 
-page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist"]
+page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist","Insights"]
 page_paths = {
     "Admin Home": "/page/admin_home",
     "User Home": "/page/home",
     "News": "/page/news",
     "Stock Analysis": "/page/stock_analysis",
     "Watchlist": "/page/watchlist",
+    "Insights": "/page/insights",
 }
-page_icons = ["house", "newspaper", "bar-chart", "bookmark"]
+page_icons = ["house", "newspaper", "bar-chart", "bookmark","pie-chart","pie-chart"]
 
 from streamlit_option_menu import option_menu
 
