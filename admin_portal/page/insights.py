@@ -2,9 +2,10 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 import dash
-from dash import html, dcc
+from dash import html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 import pandas as pd
+import plotly.express as px
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../pipeline_scripts/pipeline/.env'))
@@ -30,7 +31,12 @@ except Exception as e:
     print(f"❌ Failed to connect to database: {e}")
     conn = None
 
-layout = dbc.Container([
+# Initialize Dash app
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server  # for deployment
+
+# App layout
+app.layout = dbc.Container([
     html.H2("📊 Market Insights", className="page-title"),
     html.P("Sector Performance Overview", className="section-title"),
 
@@ -43,15 +49,11 @@ layout = dbc.Container([
 
 
 # Callback to update chart
-from dash import Input, Output
-
-@dash.callback(
+@app.callback(
     Output("sector-performance-chart", "figure"),
     Input("sector-performance-chart", "id")
 )
 def update_chart(_):
-    import plotly.express as px
-
     if conn is None:
         return px.bar(title="Database not connected.")
 
@@ -70,3 +72,8 @@ def update_chart(_):
     except Exception as e:
         print(f"❌ Failed to fetch sector performance: {e}")
         return px.bar(title=f"Error loading data: {e}")
+
+
+# Run the app
+if __name__ == "__main__":
+    app.run_server(debug=True, host="0.0.0.0", port=8501)
