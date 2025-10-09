@@ -34,73 +34,32 @@ def set_search_path(dbapi_connection, connection_record):
     with dbapi_connection.cursor() as cur:
         cur.execute(f"SET search_path TO {DB_SCHEMA}, public;")
 
-# Reference the external CSS file
+# Inject gradient background CSS
 st.markdown(
     """
     <style>
-        /* Background Color */
-        body {
-            background-color: #f4f4f9;
-        }
+    /* Gradient background for full page */
+    .stApp {
+        background: linear-gradient(135deg, #dbeafe, #93c5fd, #1e3a8a);
+        color: #1e293b;
+        font-family: 'Inter', sans-serif;
+    }
 
-        /* Title Styling */
-        .css-1f4nmg3 {
-            font-family: 'Roboto', sans-serif;
-            font-weight: 600;
-            color: #333;
-            font-size: 28px;
-        }
+    /* Card-like content areas */
+    .block-container {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem 3rem;
+        margin: 2rem auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
 
-        /* Button Styling */
-        .stButton > button {
-            background-color: #0077b6;
-            color: white;
-            border-radius: 5px;
-            font-size: 16px;
-            padding: 0.5rem 1rem;
-            transition: background-color 0.3s ease;
-        }
-
-        .stButton > button:hover {
-            background-color: #00b4d8;
-        }
-
-        /* Input Styling */
-        .stTextInput input {
-            font-size: 14px;
-            padding: 0.5rem;
-            border-radius: 5px;
-        }
-
-        .stSelectbox, .stTextArea {
-            font-size: 14px;
-            border-radius: 5px;
-        }
-
-        .stCheckbox {
-            font-size: 14px;
-        }
-
-        /* Sidebar Styling */
-        .css-1d391kg {
-            background-color: #f0f0f0;
-        }
-
-        .badge {
-            background: #eef2ff;
-            border: 1px solid #dbeafe;
-            color: #1e40af;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            margin-right: 6px;
-        }
-
-        .row-hr {
-            border: none;
-            border-bottom: 1px solid #eee;
-            margin: 0.35rem 0;
-        }
+    /* Optional: make headings bold & stylish */
+    h1, h2, h3 {
+        font-weight: 700;
+        color: #0f172a;
+    }
     </style>
     """,
     unsafe_allow_html=True
