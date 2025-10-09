@@ -7,10 +7,6 @@ from datetime import datetime, timedelta, timezone
 # ----------------- Cached Data Fetch -----------------
 @st.cache_data(ttl=900)
 def fetch_sector_performance(days: int, limit: int, page: int, _rds):
-    """
-    Fetches the top performing sectors from your SQL database.
-    Streamlit will ignore _rds when caching.
-    """
     try:
         query = f"""
         SELECT sector, performance FROM sector_performance
@@ -19,7 +15,7 @@ def fetch_sector_performance(days: int, limit: int, page: int, _rds):
         LIMIT {limit} OFFSET {(page - 1) * limit}
         """
         with _rds.connect() as conn:
-            result = conn.execute(query)
+            result = conn.execute(text(query))   # ✅ wrap in text()
             results = result.fetchall()
         
         return [{"sector": row[0], "performance": row[1]} for row in results]
@@ -27,6 +23,7 @@ def fetch_sector_performance(days: int, limit: int, page: int, _rds):
     except Exception as e:
         st.error(f"Failed to fetch sector performance: {e}")
         return []
+
 
 # ----------------- Page Rendering -----------------
 def page(rds=None, dynamo=None, **kwargs):
