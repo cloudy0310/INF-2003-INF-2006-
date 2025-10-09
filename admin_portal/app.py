@@ -69,7 +69,7 @@ st.markdown(
 )
 
 # Title of the app
-st.title("📊 My Dashboard")
+st.title("My Dashboard")
 
 # Page Options and Paths
 page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist", "Insights"]
