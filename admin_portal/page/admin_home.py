@@ -1,26 +1,81 @@
-# admin_pages/home.py
 from __future__ import annotations
 import math
 import streamlit as st
 from typing import Optional
 from sqlalchemy.engine import Engine
-
 from api.admin_content import (
     admin_list_content, admin_count_content,
     admin_create_content, admin_update_content, admin_delete_content,
 )
 
-def _compact_css():
+# Define the custom CSS injection function
+def _custom_css():
     st.markdown(
         """
         <style>
-        .block-container { padding-top: 1rem; padding-bottom: 1rem; }
-        .stTextInput input, .stNumberInput input, .stTextArea textarea {
-            padding-top: 0.28rem !important; padding-bottom: 0.28rem !important; font-size: 0.9rem !important;
+        /* Background Color */
+        body {
+            background-color: #f4f4f9;
         }
-        .stButton>button { padding: 0.28rem 0.6rem; font-size: 0.85rem; }
-        .row-hr { border: none; border-bottom: 1px solid #eee; margin: 0.35rem 0; }
-        .badge { background:#eef2ff; border:1px solid #dbeafe; color:#1e40af; padding:2px 8px; border-radius:999px; font-size:12px; margin-right:6px; }
+
+        /* Title Styling */
+        .css-1f4nmg3 {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 600;
+            color: #333;
+            font-size: 28px;
+        }
+
+        /* Button Styling */
+        .stButton > button {
+            background-color: #0077b6;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            padding: 0.5rem 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .stButton > button:hover {
+            background-color: #00b4d8;
+        }
+
+        /* Input Styling */
+        .stTextInput input {
+            font-size: 14px;
+            padding: 0.5rem;
+            border-radius: 5px;
+        }
+
+        .stSelectbox, .stTextArea {
+            font-size: 14px;
+            border-radius: 5px;
+        }
+
+        .stCheckbox {
+            font-size: 14px;
+        }
+
+        /* Sidebar Styling */
+        .css-1d391kg {
+            background-color: #f0f0f0;
+        }
+
+        .badge {
+            background: #eef2ff;
+            border: 1px solid #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+
+        .row-hr {
+            border: none;
+            border-bottom: 1px solid #eee;
+            margin: 0.35rem 0;
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -38,7 +93,7 @@ def page(rds: Optional[Engine] = None, **kwargs):
         st.error("RDS engine is required: router must call page(rds=engine).")
         st.stop()
 
-    _compact_css()
+    _custom_css()  # Inject custom CSS
     st.title("🛠️ Admin — Content Manager")
     st.caption("Create, edit, publish, and delete content shown on the user Home page.")
 
@@ -52,11 +107,7 @@ def page(rds: Optional[Engine] = None, **kwargs):
         with c2:
             new_tkr_in = st.text_input("Ticker (optional)")
             new_ticker = (new_tkr_in or "").upper().strip() or None
-            new_type = st.selectbox(
-                "Type",
-                ["analysis","news","education","portfolio_tip","market_update","opinion"],
-                index=0
-            )
+            new_type = st.selectbox("Type", ["analysis", "news", "education", "portfolio_tip", "market_update", "opinion"], index=0)
             new_tags_csv = st.text_input("Tags (comma-separated)")
             publish_now = st.checkbox("Publish now?", value=True)
         new_body = st.text_area("Body (Markdown)", height=140, placeholder="Write your content here…")
@@ -92,10 +143,10 @@ def page(rds: Optional[Engine] = None, **kwargs):
         t_in = st.text_input("Ticker", placeholder="e.g., AAPL")
         ticker = (t_in or "").upper().strip() or None
     with f3:
-        ctype = st.selectbox("Type", ["(any)","analysis","news","education","portfolio_tip","market_update","opinion"], index=0)
+        ctype = st.selectbox("Type", ["(any)", "analysis", "news", "education", "portfolio_tip", "market_update", "opinion"], index=0)
         content_type = None if ctype == "(any)" else ctype
     with f4:
-        status = st.selectbox("Status", ["all","published","drafts"], index=0)
+        status = st.selectbox("Status", ["all", "published", "drafts"], index=0)
     with f5:
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
         apply_clicked = st.button("Apply", use_container_width=True)
