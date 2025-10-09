@@ -59,53 +59,14 @@ if "top_nav_selected" not in st.session_state:
     st.session_state.top_nav_selected = 0
 
 # Reference the external CSS file
-st.markdown("""
+st.markdown(
+    """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&family=Poppins:wght@400;600&display=swap');
-
-        /* Background Color */
-        body {
-            background-color: #f4f4f9;
-        }
-
-        /* Title Styling */
-        .css-1f4nmg3 {
-            font-family: 'Roboto', sans-serif;
-            font-weight: 600;
-            color: #333;
-            font-size: 28px;
-        }
-
-        /* Navigation Styling */
-        .css-14xt3yq {
-            font-family: 'Poppins', sans-serif;
-            color: #0077b6;
-        }
-
-        /* Button Styling */
-        .stButton>button {
-            background-color: #0077b6;
-            color: white;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-
-        .stButton>button:hover {
-            background-color: #00b4d8;
-        }
-
-        /* Sidebar Styling */
-        .css-1d391kg {
-            background-color: #f0f0f0;
-        }
-
-        /* Adjusting Card Shadows */
-        .css-1d391kg .stButton {
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        }
+        @import url('styles.css');
     </style>
-""", unsafe_allow_html=True)
+    """, 
+    unsafe_allow_html=True
+)
 
 # Title of the app
 st.title("📊 My Dashboard")
