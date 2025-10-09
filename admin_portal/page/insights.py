@@ -23,15 +23,26 @@ def page(rds: Engine = None):
     try:
         query = f"""
             SELECT sector, performance 
-            FROM sector_performance 
+            FROM public.sector_performance 
             WHERE performance IS NOT NULL
             ORDER BY performance DESC
             LIMIT {limit}
         """
         df = pd.read_sql(query, rds)
     except Exception as e:
-        st.error(f"❌ Failed to load sector performance data: {e}")
+        st.warning("Sector data not found — showing example chart instead.")
+        st.exception(e)
+
+        # Sample placeholder data
+        sample_df = pd.DataFrame({
+            "sector": ["Tech", "Finance", "Energy", "Healthcare"],
+            "performance": [12.3, 8.7, -3.4, 5.9]
+        })
+
+        fig = px.bar(sample_df, x="sector", y="performance", title="Sample Sector Performance")
+        st.plotly_chart(fig, use_container_width=True)
         return
+
 
     if df.empty:
         st.info("No sector performance data found.")
