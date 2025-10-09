@@ -30,9 +30,6 @@ except Exception as e:
     print(f"❌ Failed to connect to database: {e}")
     conn = None
 
-# Dash layout
-dash.register_page(__name__, path="/insights", name="Insights")
-
 layout = dbc.Container([
     html.H2("📊 Market Insights", className="page-title"),
     html.P("Sector Performance Overview", className="section-title"),
