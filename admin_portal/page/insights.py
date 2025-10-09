@@ -4,46 +4,32 @@ import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime, timedelta, timezone
 
-# ---------- Fetching Sector Performance Data from Database ----------
-
+# Assuming you have your SQL query or other data fetching methods here
 @st.cache_data(ttl=900)
-def fetch_sector_performance(days: int, limit: int, page: int):
+def fetch_sector_performance(days: int, limit: int, page: int, rds):
     """
     Fetches the top performing sectors from your SQL database.
     """
     try:
-        # Modify this connection string based on your actual database structure
-        engine = create_engine('your_database_connection_string_here')
-
-        # Date range for fetching data
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(days=days)
-
         query = f"""
         SELECT sector, performance FROM sector_performance
         WHERE performance IS NOT NULL
         ORDER BY performance DESC
         LIMIT {limit} OFFSET {(page - 1) * limit}
         """
-
-        # Establishing the connection and executing the query
-        with engine.connect() as connection:
-            result = connection.execute(query)
+        with rds.connect() as conn:
+            result = conn.execute(query)
             results = result.fetchall()
         
-        # Returning results as a list of dictionaries
         return [{"sector": row[0], "performance": row[1]} for row in results]
 
     except Exception as e:
         st.error(f"Failed to fetch sector performance: {e}")
         return []
 
-# ---------- Display Insights Page ----------
-
-def insights_page():
+def page(rds=None, dynamo=None, **kwargs):
     """
-    This function renders the 'Insights' page in Streamlit, displaying the top-performing sectors
-    as a bar chart using Plotly.
+    The 'Insights' page function that renders the insights using RDS data.
     """
     st.title("📊 Sector Insights")
     st.caption("View the top-performing sectors based on recent data.")
@@ -61,7 +47,7 @@ def insights_page():
         st.cache_data.clear()
 
     # ----------------- Fetch and Display Data -----------------
-    sector_data = fetch_sector_performance(days, limit, page)
+    sector_data = fetch_sector_performance(days, limit, page, rds)
 
     if not sector_data:
         st.info("No sector data available.")
@@ -102,16 +88,3 @@ def insights_page():
         file_name="sector_performance.csv",
         mime="text/csv",
     )
-
-# ---------- Main Streamlit Application ----------
-
-def main():
-    """
-    The main function to launch the Streamlit app.
-    """
-    # Call the Insights page function to display it
-    insights_page()
-
-# Run the Streamlit app
-if __name__ == "__main__":
-    main()
