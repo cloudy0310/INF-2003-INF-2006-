@@ -11,11 +11,21 @@ import plotly.express as px
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../pipeline_scripts/pipeline/.env'))
 
 # Get DB credentials
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_PORT = os.getenv("DB_PORT", 5432)
+USE_RDS = os.getenv("USE_RDS", "0") == "1"
+
+if USE_RDS:
+    DB_HOST = os.getenv("PG_HOST")
+    DB_NAME = os.getenv("PG_DB")
+    DB_USER = os.getenv("PG_USER")
+    DB_PASSWORD = os.getenv("PG_PASS")
+    DB_PORT = os.getenv("PG_PORT", 5432)
+else:
+    # fallback/default/test values
+    DB_HOST = "localhost"
+    DB_NAME = "test_db"
+    DB_USER = "user"
+    DB_PASSWORD = "password"
+    DB_PORT = 5432
 
 # Database connection
 try:
