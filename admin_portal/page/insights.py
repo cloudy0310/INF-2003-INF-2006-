@@ -4,11 +4,12 @@ import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime, timedelta, timezone
 
-# Assuming you have your SQL query or other data fetching methods here
+# ----------------- Cached Data Fetch -----------------
 @st.cache_data(ttl=900)
-def fetch_sector_performance(days: int, limit: int, page: int, rds):
+def fetch_sector_performance(days: int, limit: int, page: int, _rds):
     """
     Fetches the top performing sectors from your SQL database.
+    Streamlit will ignore _rds when caching.
     """
     try:
         query = f"""
@@ -17,7 +18,7 @@ def fetch_sector_performance(days: int, limit: int, page: int, rds):
         ORDER BY performance DESC
         LIMIT {limit} OFFSET {(page - 1) * limit}
         """
-        with rds.connect() as conn:
+        with _rds.connect() as conn:
             result = conn.execute(query)
             results = result.fetchall()
         
@@ -27,6 +28,7 @@ def fetch_sector_performance(days: int, limit: int, page: int, rds):
         st.error(f"Failed to fetch sector performance: {e}")
         return []
 
+# ----------------- Page Rendering -----------------
 def page(rds=None, dynamo=None, **kwargs):
     """
     The 'Insights' page function that renders the insights using RDS data.
@@ -64,26 +66,27 @@ def page(rds=None, dynamo=None, **kwargs):
         text=performances,
         textposition='auto',
         marker_color='royalblue',
-        hovertemplate='Sector: %{x}<br>Performance: %{y}%',  # Add custom hover text
+        hovertemplate='Sector: %{x}<br>Performance: %{y}%',
     )])
 
-    # Add title and labels to the chart
+    # Chart styling
     fig.update_layout(
         title="Top Performing Sectors",
         xaxis_title="Sector",
         yaxis_title="Performance (%)",
-        template="plotly_dark",
-        plot_bgcolor="rgba(0, 0, 0, 0)",  # Set the background color to transparent
-        margin=dict(l=40, r=40, t=40, b=40)  # Adjust margins
+        template="plotly_white",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=40, r=40, t=40, b=40)
     )
 
-    # Display the chart in Streamlit
+    # Display the chart
     st.plotly_chart(fig, use_container_width=True)
 
-    # ----------------- Download Current Page -----------------
+    # ----------------- Download Section -----------------
     df = pd.DataFrame(sector_data)
     st.download_button(
-        "Download sector performance CSV",
+        "📥 Download sector performance CSV",
         df.to_csv(index=False).encode("utf-8"),
         file_name="sector_performance.csv",
         mime="text/csv",
