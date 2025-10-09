@@ -40,8 +40,6 @@ st.markdown(
     <style>
     /* Gradient background for full page */
     .stApp {
-        background: linear-gradient(135deg, #dbeafe, #93c5fd, #1e3a8a);
-        color: #1e293b;
         font-family: 'Inter', sans-serif;
     }
 
