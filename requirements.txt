@@ -10,3 +10,4 @@ psycopg2-binary
 streamlit-option-menu
 sqlalchemy
 boto3
+streamlit-cookies-manager
