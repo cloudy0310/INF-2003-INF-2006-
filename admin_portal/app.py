@@ -1,5 +1,3 @@
-# app.py (root)
-
 import os
 import importlib
 import streamlit as st
@@ -7,15 +5,11 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 
-try:
-    import boto3
-except Exception:
-    boto3 = None
-
+# Load environment variables
 load_dotenv()
 st.set_page_config(layout="wide")
 
-
+# Create RDS engine for SQLAlchemy
 @st.cache_resource(show_spinner=False)
 def get_rds_engine() -> Engine:
     host = os.getenv("RDS_HOST")
@@ -28,41 +22,51 @@ def get_rds_engine() -> Engine:
     url = f"postgresql+psycopg2://{user}:{pwd}@{host}:{port}/{db}?sslmode=require"
     return create_engine(url, pool_pre_ping=True, pool_recycle=300, future=True)
 
-
+# Store RDS engine in session state
 if "rds_engine" not in st.session_state:
     st.session_state.rds_engine = get_rds_engine()
 
-
 DB_SCHEMA = os.getenv("DB_SCHEMA", "public").strip()
 
-
+# Set search path for PostgreSQL schema
 @event.listens_for(st.session_state.rds_engine, "connect")
 def set_search_path(dbapi_connection, connection_record):
     with dbapi_connection.cursor() as cur:
         cur.execute(f"SET search_path TO {DB_SCHEMA}, public;")
 
+# Inject gradient background CSS
+st.markdown(
+    """
+    <style>
+    /* Gradient background for full page */
+    .stApp {
+        font-family: 'Inter', sans-serif;
+    }
 
-def _make_dynamo():
-    if not boto3:
-        return None
-    region = os.getenv("AWS_REGION")
-    if not region:
-        return None
-    return boto3.resource("dynamodb", region_name=region)
+    /* Card-like content areas */
+    .block-container {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem 3rem;
+        margin: 2rem auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
 
+    /* Optional: make headings bold & stylish */
+    h1, h2, h3 {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-if "dynamo" not in st.session_state:
-    st.session_state.dynamo = _make_dynamo()
-
-
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "/page/admin_home"
-if "top_nav_selected" not in st.session_state:
-    st.session_state.top_nav_selected = 0
-
+# Admin Home Page
 st.title("📊 My Dashboard")
 
-page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist","Insights"]
+page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist", "Insights"]
 page_paths = {
     "Admin Home": "/page/admin_home",
     "User Home": "/page/home",
@@ -71,49 +75,25 @@ page_paths = {
     "Watchlist": "/page/watchlist",
     "Insights": "/page/insights",
 }
-page_icons = ["house", "newspaper", "bar-chart", "bookmark","pie-chart","pie-chart"]
 
+# Add navigation
 from streamlit_option_menu import option_menu
-
 selected = option_menu(
     menu_title=None,
     options=page_options,
-    icons=page_icons[: len(page_options)],
+    icons=["house", "newspaper", "bar-chart", "bookmark", "pie-chart", "pie-chart"],
     menu_icon="cast",
-    default_index=st.session_state.top_nav_selected,
+    default_index=0,
     orientation="horizontal",
-    key=f"top_nav_bar_{st.session_state.top_nav_selected}",
-    styles={
-        "container": {"padding": "0!important", "background-color": "#f0f2f6"},
-        "nav-link": {
-            "font-size": "16px",
-            "text-align": "center",
-            "margin": "0px",
-            "--hover-color": "#eee",
-        },
-        "nav-link-selected": {"background-color": "#0d6efd", "color": "white"},
-    },
 )
 
-st.session_state.top_nav_selected = page_options.index(selected)
-st.session_state.current_page = page_paths[selected]
-
-page = st.session_state.current_page
+# Dynamically load the selected page
+page = page_paths[selected]
 module_name = page.replace("/", ".")[1:]
 
 try:
-    if page.startswith("/page"):
-        module = importlib.import_module(module_name)
-        if hasattr(module, "page"):
-            module.page(
-                rds=st.session_state.rds_engine,
-                dynamo=st.session_state.dynamo,
-            )
-        else:
-            st.error(f"`{module_name}` loaded but missing `page(**kwargs)`.")
-    else:
-        st.error(f"Unknown page root for '{page}'. Expected '/page/*'.")
-except ModuleNotFoundError:
-    st.error(f"Page module '{module_name}' not found.")
+    module = importlib.import_module(module_name)
+    if hasattr(module, "page"):
+        module.page(rds=st.session_state.rds_engine)
 except Exception as e:
-    st.error(f"Failed to render '{module_name}': {e}")
+    st.error(f"Error: {e}")

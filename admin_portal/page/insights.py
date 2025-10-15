@@ -1,117 +1,71 @@
-import streamlit as st
-import plotly.graph_objects as go
+# user_page/insights.py
+
 import pandas as pd
-from sqlalchemy import create_engine
-from datetime import datetime, timedelta, timezone
+import streamlit as st
+import plotly.express as px
+from sqlalchemy.engine import Engine
 
-# ---------- Fetching Sector Performance Data from Database ----------
+def page(rds: Engine = None):
+    st.set_page_config(page_title="Market Insights", layout="wide")
+    st.title("📊 Market Insights")
+    st.caption("Top performing sectors from recent data")
 
-@st.cache_data(ttl=900)
-def fetch_sector_performance(days: int, limit: int, page: int):
-    """
-    Fetches the top performing sectors from your SQL database.
-    """
+    if rds is None:
+        st.error("RDS engine is required.")
+        st.stop()
+
+    # Optional sector filter (if applicable in your data)
+    st.subheader("🔍 Sector Performance Overview")
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        limit = st.slider("Number of sectors to show", 5, 50, 20)
+
     try:
-        # Modify this connection string based on your actual database structure
-        engine = create_engine('your_database_connection_string_here')
-
-        # Date range for fetching data
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(days=days)
-
         query = f"""
-        SELECT sector, performance FROM sector_performance
-        WHERE performance IS NOT NULL
-        ORDER BY performance DESC
-        LIMIT {limit} OFFSET {(page - 1) * limit}
+            SELECT sector, performance 
+            FROM public.sector_performance 
+            WHERE performance IS NOT NULL
+            ORDER BY performance DESC
+            LIMIT {limit}
         """
-
-        # Establishing the connection and executing the query
-        with engine.connect() as connection:
-            result = connection.execute(query)
-            results = result.fetchall()
-        
-        # Returning results as a list of dictionaries
-        return [{"sector": row[0], "performance": row[1]} for row in results]
-
+        df = pd.read_sql(query, rds)
     except Exception as e:
-        st.error(f"Failed to fetch sector performance: {e}")
-        return []
+        st.warning("Sector data not found — showing example chart instead.")
+        st.exception(e)
 
-# ---------- Display Insights Page ----------
+        # Sample placeholder data
+        sample_df = pd.DataFrame({
+            "sector": ["Tech", "Finance", "Energy", "Healthcare"],
+            "performance": [12.3, 8.7, -3.4, 5.9]
+        })
 
-def insights_page():
-    """
-    This function renders the 'Insights' page in Streamlit, displaying the top-performing sectors
-    as a bar chart using Plotly.
-    """
-    st.title("📊 Sector Insights")
-    st.caption("View the top-performing sectors based on recent data.")
-    
-    # ----------------- Controls -----------------
-    cols = st.columns(5)
-    days = cols[0].selectbox("Range", options=[7, 30, 90], index=1)
-    limit = cols[1].selectbox("Page size", options=[10, 20, 50], index=1)
-    page = cols[2].number_input("Page", min_value=1, value=1, step=1)
-    q = cols[3].text_input("Search", value="", placeholder="keyword…")
-    source = cols[4].text_input("Source", value="", placeholder="e.g., Reuters")
-
-    refresh = st.button("Refresh", use_container_width=False)
-    if refresh:
-        st.cache_data.clear()
-
-    # ----------------- Fetch and Display Data -----------------
-    sector_data = fetch_sector_performance(days, limit, page)
-
-    if not sector_data:
-        st.info("No sector data available.")
+        fig = px.bar(sample_df, x="sector", y="performance", title="Sample Sector Performance")
+        st.plotly_chart(fig, use_container_width=True)
         return
 
-    # Prepare data for Plotly chart
-    sectors = [item['sector'] for item in sector_data]
-    performances = [item['performance'] for item in sector_data]
 
-    # Create a bar chart using Plotly
-    fig = go.Figure([go.Bar(
-        x=sectors,
-        y=performances,
-        text=performances,
-        textposition='auto',
-        marker_color='royalblue',
-        hovertemplate='Sector: %{x}<br>Performance: %{y}%',  # Add custom hover text
-    )])
+    if df.empty:
+        st.info("No sector performance data found.")
+        return
 
-    # Add title and labels to the chart
-    fig.update_layout(
-        title="Top Performing Sectors",
-        xaxis_title="Sector",
-        yaxis_title="Performance (%)",
-        template="plotly_dark",
-        plot_bgcolor="rgba(0, 0, 0, 0)",  # Set the background color to transparent
-        margin=dict(l=40, r=40, t=40, b=40)  # Adjust margins
+    fig = px.bar(
+        df,
+        x="sector",
+        y="performance",
+        title=f"Top {limit} Sector Performances",
+        color="performance",
+        color_continuous_scale="Blues",
+        labels={"sector": "Sector", "performance": "Performance"},
     )
 
-    # Display the chart in Streamlit
+    fig.update_layout(
+        height=500,
+        margin=dict(l=20, r=20, t=50, b=20),
+        xaxis_tickangle=-45
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
-    # ----------------- Download Current Page -----------------
-    df = pd.DataFrame(sector_data)
-    st.download_button(
-        "Download sector performance CSV",
-        df.to_csv(index=False).encode("utf-8"),
-        file_name="sector_performance.csv",
-        mime="text/csv",
-    )
-
-# ---------- Main Streamlit Application ----------
-
-def main():
-    """
-    The main function to launch the Streamlit app.
-    """
-    # Call the Insights page function to display it
-    insights_page()
-
-# Run the Streamlit app
-if __name__ == "__main__":
-    main()
+    # Optionally show the raw data table
+    with st.expander("🧾 Show raw data"):
+        st.dataframe(df, use_container_width=True)
