@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone, date
 from urllib.parse import urlparse
 import pandas as pd
 
-from app.api.display_news import list_news, get_daily_summary
+from user_portal.api.display_news import list_news, get_daily_summary
 
 st.header("News")
 
