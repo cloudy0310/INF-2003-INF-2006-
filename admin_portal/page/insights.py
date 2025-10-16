@@ -1,83 +1,71 @@
+# user_page/insights.py
+
+import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
+import plotly.express as px
+from sqlalchemy.engine import Engine
 
-# ---------- Fetching Sector Performance Data from Database ----------
+def page(rds: Engine = None):
+    st.set_page_config(page_title="Market Insights", layout="wide")
+    st.title("📊 Market Insights")
+    st.caption("Top performing sectors from recent data")
 
-def fetch_sector_performance(rds):
-    """
-    Fetches the top performing sectors from your RDS database.
-    """
-    try:
-        # Modify this query based on your actual database structure
-        query = "SELECT sector, performance FROM sector_performance ORDER BY performance DESC LIMIT 10"
-        # Assuming rds.execute is the method to run queries and fetch data
-        results = rds.execute(query)
-        return results
-    except Exception as e:
-        st.error(f"Failed to fetch sector performance: {e}")
-        return []
-
-# ---------- Display Insights Page ----------
-
-def insights_page(rds):
-    """
-    This function renders the 'Insights' page in Streamlit, displaying the top-performing sectors
-    as a bar chart using Plotly.
-    """
-    st.title("📊 Sector Insights")
-    st.caption("View the top-performing sectors based on recent data.")
-    
-    # Fetch sector performance data from the RDS
-    sector_data = fetch_sector_performance(rds)
-
-    if not sector_data:
-        st.warning("No sector data available.")
-        return
-
-    # Prepare data for Plotly chart
-    sectors = [item['sector'] for item in sector_data]
-    performances = [item['performance'] for item in sector_data]
-
-    # Create a bar chart using Plotly
-    fig = go.Figure([go.Bar(
-        x=sectors,
-        y=performances,
-        text=performances,
-        textposition='auto',
-        marker_color='blue'
-    )])
-
-    # Add title and labels to the chart
-    fig.update_layout(
-        title="Top Performing Sectors",
-        xaxis_title="Sector",
-        yaxis_title="Performance (%)",
-        template="plotly_dark"
-    )
-
-    # Display the chart in Streamlit
-    st.plotly_chart(fig)
-
-# ---------- Main Function to Switch Between Tabs ----------
-
-def page(rds=None, dynamo=None):
-    """
-    The main function to manage tabs in the Streamlit page. Allows users to switch between Home and Insights.
-    """
     if rds is None:
-        st.error("RDS engine not provided to page().")
+        st.error("RDS engine is required.")
         st.stop()
 
-    # Selectbox to switch between tabs
-    tab = st.selectbox("Select Tab", ["Home", "Insights"])
+    # Optional sector filter (if applicable in your data)
+    st.subheader("🔍 Sector Performance Overview")
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        limit = st.slider("Number of sectors to show", 5, 50, 20)
 
-    if tab == "Home":
-        # Show the existing home content (you can call your original home function here)
-        st.title("🏠 Home")
-        st.caption("Latest content from your RDS database.")
-        # You can call your existing home page function here, e.g. home_page()
-        # home_page(rds)
-    elif tab == "Insights":
-        # Call the function to display insights
-        insights_page(rds)
+    try:
+        query = f"""
+            SELECT sector, performance 
+            FROM public.sector_performance 
+            WHERE performance IS NOT NULL
+            ORDER BY performance DESC
+            LIMIT {limit}
+        """
+        df = pd.read_sql(query, rds)
+    except Exception as e:
+        st.warning("Sector data not found — showing example chart instead.")
+        st.exception(e)
 
+        # Sample placeholder data
+        sample_df = pd.DataFrame({
+            "sector": ["Tech", "Finance", "Energy", "Healthcare"],
+            "performance": [12.3, 8.7, -3.4, 5.9]
+        })
+
+        fig = px.bar(sample_df, x="sector", y="performance", title="Sample Sector Performance")
+        st.plotly_chart(fig, use_container_width=True)
+        return
+
+
+    if df.empty:
+        st.info("No sector performance data found.")
+        return
+
+    fig = px.bar(
+        df,
+        x="sector",
+        y="performance",
+        title=f"Top {limit} Sector Performances",
+        color="performance",
+        color_continuous_scale="Blues",
+        labels={"sector": "Sector", "performance": "Performance"},
+    )
+
+    fig.update_layout(
+        height=500,
+        margin=dict(l=20, r=20, t=50, b=20),
+        xaxis_tickangle=-45
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Optionally show the raw data table
+    with st.expander("🧾 Show raw data"):
+        st.dataframe(df, use_container_width=True)
