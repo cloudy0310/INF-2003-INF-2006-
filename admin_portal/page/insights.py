@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.express as px
 from sqlalchemy.engine import Engine
 
-def page(rds: Engine = None):
+def page(rds: Engine = None, dynamo=None):
     st.set_page_config(page_title="Market Insights", layout="wide")
     st.title("📊 Market Insights")
     st.caption("Top performing sectors from recent data")
