@@ -34,7 +34,7 @@ def page(rds=None, dynamo=None):
         st.error("RDS engine not provided to page().")
         st.stop()
 
-    st.title("🏠 Home")
+    st.title("Home")
     st.caption("Latest content from your RDS database.")
 
     f1, f2, f3, f4 = st.columns([1.0, 1.6, 1.6, 0.6])
@@ -134,7 +134,7 @@ def _content_card(row: dict):
             if row.get("ticker"):
                 chips.append(_badge(row["ticker"]))
             if row.get("published_at"):
-                chips.append(_badge(f"📅 {row['published_at']}"))
+                chips.append(_badge(f" {row['published_at']}"))
             if chips:
                 st.markdown("".join(chips), unsafe_allow_html=True)
 
