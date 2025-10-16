@@ -60,7 +60,7 @@ def page():
     # --------------------------
     # Top navigation
     # --------------------------
-    st.title("📊 User Dashboard")
+    st.title("User Dashboard")
 
     page_options = ["User Home", "News", "Stock Analysis", "Watchlist", "Insights"]
     page_paths = {
