@@ -30,6 +30,62 @@ def _derive_name(claims: dict, email: str | None):
     if n:
         return n
     return None
+# --- handle logout action EARLY (before CookieManager / restore) ---
+try:
+    _qp = st.query_params
+except AttributeError:
+    _qp = st.experimental_get_query_params()
+
+def _qp_get(name, default=None):
+    v = _qp.get(name)
+    return v[0] if isinstance(v, list) else (v if v is not None else default)
+
+action = _qp_get("action")
+
+if action == "logout":
+    # Clear server session
+    st.session_state.pop("tokens", None)
+    st.session_state.pop("user", None)
+    st.session_state.pop("user_synced", None)
+
+    # Best-effort cookie delete (works even if CookieManager isn't ready)
+    st.markdown(
+        """
+        <script>
+        function del(n){ try{ document.cookie = n + "=; Max-Age=0; path=/;"; }catch(e){} }
+        del('rt'); del('idt'); del('idt_exp');
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    COGNITO_DOMAIN = os.getenv("COGNITO_DOMAIN")
+    COGNITO_CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
+    COGNITO_REDIRECT_URI = os.getenv("COGNITO_REDIRECT_URI")
+
+    # Safety: if any env missing, just render the login page instead of blank
+    if not (COGNITO_DOMAIN and COGNITO_CLIENT_ID and COGNITO_REDIRECT_URI):
+        st.info("Signed out locally. Missing Cognito env to complete Hosted UI logout.")
+        st.markdown("[Return to app](/)")
+        st.stop()
+
+    logout_return = f"{COGNITO_REDIRECT_URI}?logged_out=1"
+    logout_url = (
+        f"{COGNITO_DOMAIN.rstrip('/')}/logout"
+        f"?client_id={COGNITO_CLIENT_ID}"
+        f"&logout_uri={quote(logout_return, safe='')}"
+    )
+
+    # Robust same-tab redirect: JS + meta refresh + visible link
+    st.markdown(
+        f"""
+        <meta http-equiv="refresh" content="0; url={logout_url}" />
+        <script>window.location.replace("{logout_url}");</script>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.stop()
+
 
 
 def _fetch_userinfo(domain: str, access_token: str) -> dict | None:
@@ -108,8 +164,8 @@ COGNITO_REDIRECT_URI = os.getenv("COGNITO_REDIRECT_URI")
 
 # Build login URL
 AUTHORIZE_URL = (
-    f"{COGNITO_DOMAIN.rstrip('/')}/oauth2/authorize"
-    f"?client_id={COGNITO_CLIENT_ID}"
+    f"{COGNITO_DOMAIN}/login?"
+    f"client_id={COGNITO_CLIENT_ID}"
     f"&response_type=code"
     f"&scope=email+openid+profile"
     f"&redirect_uri={COGNITO_REDIRECT_URI}"
@@ -118,44 +174,9 @@ AUTHORIZE_URL = (
 st.set_page_config(page_title="Stocks Analytics Portal", page_icon="📊")
 cookies = CookieManager()
 if not cookies.ready():
-    st.stop()  # first run needs a rerender for cookies to be ready
-# --- handle logout action early ---
-try:
-    qp = st.query_params
-except AttributeError:
-    qp = st.experimental_get_query_params()
+    st.stop()  # first render; cookies will be ready on the next run
 
-action = None
-if qp:
-    action = qp.get("action", [None])[0] if isinstance(qp.get("action"), list) else qp.get("action")
 
-if action == "logout":
-    # Clear app session
-    st.session_state.pop("tokens", None)
-    st.session_state.pop("user", None)
-    st.session_state.pop("user_synced", None)
-
-    # Clear cookies
-    cookies['rt'] = ''
-    cookies['idt'] = ''
-    cookies['idt_exp'] = ''
-    cookies.save()
-
-    # Clear local query params so we don't keep ?action=logout around
-    try:
-        st.query_params.clear()
-    except Exception:
-        st.experimental_set_query_params()
-
-    # Send to Cognito logout; return to EXACT URL configured in "Sign out URL(s)"
-    logout_return = COGNITO_REDIRECT_URI  # e.g. http://localhost:8501
-    logout_url = (
-        f"{COGNITO_DOMAIN.rstrip('/')}/logout"
-        f"?client_id={COGNITO_CLIENT_ID}"
-        f"&logout_uri={quote(logout_return, safe='')}"
-    )
-    st.markdown(f'<meta http-equiv="refresh" content="0; url={logout_url}" />', unsafe_allow_html=True)
-    st.stop()
 
 
 # st.title("📊 Stocks Analytics Portal")
@@ -176,6 +197,17 @@ try:
     query_params = st.query_params
 except AttributeError:
     query_params = st.experimental_get_query_params()
+# Normalize ?code param and detect "just logged out"
+def _qp_get2(qp, name, default=None):
+    v = qp.get(name)
+    return v[0] if isinstance(v, list) else (v if v is not None else default)
+
+suppress_restore = (_qp_get2(query_params, "logged_out") == "1")
+
+auth_code = None
+if query_params:
+    code_val = query_params.get("code")
+    auth_code = code_val[0] if isinstance(code_val, list) else code_val
 
 # Normalize ?code param
 auth_code = None
@@ -189,28 +221,27 @@ if query_params:
 tokens = st.session_state.get("tokens")
 decoded = None
 # 🍪 INSTANT RESTORE from cookie (skip Hosted-UI bounce)
+# 🍪 INSTANT RESTORE from cookie (skip if we just logged out)
 import time
-if not st.session_state.get("user"):
+if not suppress_restore and not st.session_state.get("user"):
     idt_cookie = cookies.get('idt')
     idt_exp = cookies.get('idt_exp')
     if idt_cookie and idt_exp:
         try:
             if int(idt_exp) > int(time.time()):
-                # still valid — restore user immediately (no network)
-                st.session_state["user"] = jwt.get_unverified_claims(idt_cookie)
-                # also seed tokens dict so downstream logic works
                 t = st.session_state.get("tokens") or {}
                 t["id_token"] = idt_cookie
                 st.session_state["tokens"] = t
+
         except Exception:
             pass
 
-# Try refresh flow if we have a refresh_token but no decoded user yet
-if not st.session_state.get("user"):
-    # ✅ get RT from session OR cookie BEFORE deciding to refresh
-    t = st.session_state.get("tokens") or {}
-    rt = t.get("refresh_token") or cookies.get('rt')  # <— moved up
 
+# Try refresh flow if we have a refresh_token but no decoded user yet
+# Try refresh flow only if we didn't just log out
+if not suppress_restore and not st.session_state.get("user"):
+    t = st.session_state.get("tokens") or {}
+    rt = t.get("refresh_token") or cookies.get('rt')
     if rt:
         token_url = f"{COGNITO_DOMAIN.rstrip('/')}/oauth2/token"
         data = {
@@ -219,19 +250,15 @@ if not st.session_state.get("user"):
             "refresh_token": rt,
         }
         auth = (COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET) if COGNITO_CLIENT_SECRET else None
-        r = requests.post(token_url, data=data,
-                          headers={"Content-Type": "application/x-www-form-urlencoded"},
-                          auth=auth)
+        r = requests.post(token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}, auth=auth)
 
-        idt2 = None  # avoid NameError on failure
-
+        idt2 = None
         if r.status_code == 200:
             newt = r.json()
-            if "refresh_token" not in newt and rt:
+            if "refresh_token" not in newt:
                 newt["refresh_token"] = rt
             st.session_state["tokens"] = newt
 
-            # 🍪 update cookies (rotate id token; keep RT)
             cookies['rt'] = rt
             idt2 = newt.get("id_token")
             if idt2:
@@ -245,6 +272,7 @@ if not st.session_state.get("user"):
 
             if idt2:
                 st.session_state["user"] = jwt.get_unverified_claims(idt2)
+
 
 
 if auth_code and "tokens" not in st.session_state:
@@ -297,13 +325,37 @@ if auth_code and "tokens" not in st.session_state:
 tokens = st.session_state.get("tokens")
 if tokens and isinstance(tokens, dict):
     idt = tokens.get("id_token")
+    act = tokens.get("access_token")
+
+    claims_id = {}
+    claims_acc = {}
     if idt:
-        decoded = jwt.get_unverified_claims(idt)
-        st.session_state["user"] = decoded
-        # Upsert user just once per session
-        if not st.session_state.get("user_synced"):
-            sync_user_to_db(decoded)
-            st.session_state["user_synced"] = True
+        try:
+            claims_id = jwt.get_unverified_claims(idt)
+        except Exception:
+            claims_id = {}
+
+    if act:
+        try:
+            claims_acc = jwt.get_unverified_claims(act)
+        except Exception:
+            claims_acc = {}
+
+    # Prefer groups from ID token, else from Access token
+    groups = (claims_id.get("cognito:groups")
+              or claims_acc.get("cognito:groups")
+              or [])
+
+    # Merge, but make sure groups exists even if missing in ID token
+    merged = {**claims_id}
+    merged["cognito:groups"] = groups
+
+    st.session_state["user"] = merged
+
+    if not st.session_state.get("user_synced") and merged:
+        sync_user_to_db(merged)
+        st.session_state["user_synced"] = True
+
 else:
     # If you want silence on first load, remove this error entirely
     if auth_code and "tokens" in st.session_state:
@@ -311,25 +363,21 @@ else:
 
 if "user" in st.session_state:
     user = st.session_state["user"]
-    groups = user.get("cognito:groups", [])
+    groups = user.get("cognito:groups", []) or []
+
+    is_admin_db = False
+    display_name = user.get("email", "Unknown user")
 
     with engine.connect() as conn:
-        result = conn.execute(
+        row = conn.execute(
             text("SELECT name, email, is_admin FROM users WHERE cognito_sub = :sub"),
             {"sub": user.get("sub")},
         ).fetchone()
+        if row:
+            display_name = row[0] or (row[1] or display_name)
+            is_admin_db = bool(row[2])
 
-    if result and result[0]:
-        display_name = result[0]
-    else:
-        display_name = user.get("email", "Unknown user")
-    st.empty()
-    st.markdown("<div style='height: 100px'></div>", unsafe_allow_html=True)
-    logout_url = (
-        f"{COGNITO_DOMAIN}/logout?"
-        f"client_id={COGNITO_CLIENT_ID}"
-        f"&logout_uri={COGNITO_REDIRECT_URI}"
-    )
+    is_admin = ("admin" in groups) or is_admin_db
 
     # Place logout button at top-right
     col1, col2 = st.columns([8, 1])
@@ -340,7 +388,7 @@ if "user" in st.session_state:
                 <button class='dropbtn'>Profile ▾</button>
                 <div class='dropdown-content'>
                     <a href='/update_details'>Update Details</a>
-                    <a href='?action=logout'>Logout</a>
+                    <a href='?action=logout' target="_self">Logout</a>
                 </div>
             </div>
         </div>
@@ -401,7 +449,7 @@ if "user" in st.session_state:
         """, unsafe_allow_html=True)
 
     try:
-        if "admin" in groups:
+        if is_admin:
             module = importlib.import_module("admin_portal.app")
         else:
             module = importlib.import_module("user_portal.app")
@@ -419,6 +467,13 @@ if "user" in st.session_state:
 # Not logged in → show login button
 # -------------------------
 else:
+    # If we came back with ?logged_out=1, clear it from the address bar
+    try:
+        if suppress_restore:
+            st.query_params.clear()
+    except Exception:
+        pass
+
     st.markdown("Please log in to continue.")
     st.markdown(
         f"""
@@ -449,4 +504,3 @@ else:
         """,
         unsafe_allow_html=True,
     )
-
