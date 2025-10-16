@@ -23,11 +23,13 @@ def page(rds=None, dynamo=None):
         query = f"""
             SELECT 
                 c.name AS company_name, 
-                f.net_income  -- Performance metric (change this to another metric if needed)
+                f.net_income
             FROM 
                 companies c
             JOIN 
                 financials f ON c.ticker = f.ticker
+            WHERE 
+                f.net_income IS NOT NULL  -- Filter out rows with NULL net_income
             ORDER BY 
                 f.net_income DESC
             LIMIT {limit}
