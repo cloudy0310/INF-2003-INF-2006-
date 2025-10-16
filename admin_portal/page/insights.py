@@ -6,54 +6,59 @@ def page(rds=None, dynamo=None):
     # Set up the Streamlit page configuration
     st.set_page_config(page_title="Market Insights", layout="wide")
     st.title("📊 Market Insights")
-    st.caption("Top performing sectors from recent data")
+    st.caption("Top performing companies from recent financial data")
 
     if rds is None:
         st.error("RDS engine is required.")
         st.stop()
 
-    # Optional sector filter (if applicable in your data)
-    st.subheader("🔍 Sector Performance Overview")
+    # Optional filter for number of companies to display
+    st.subheader("🔍 Company Performance Overview")
     col1, col2 = st.columns([1, 2])
     with col1:
-        limit = st.slider("Number of sectors to show", 5, 50, 20)
+        limit = st.slider("Number of companies to show", 5, 50, 20)
 
     try:
-        # Replace this query with your actual SQL query to fetch sector data
+        # Query to get company performance data from 'companies' and 'financials' tables
         query = f"""
-            SELECT sector, performance
-            FROM public.sector_performance
-            WHERE performance IS NOT NULL
-            ORDER BY performance DESC
+            SELECT 
+                c.name AS company_name, 
+                f.net_income  -- Performance metric (change this to another metric if needed)
+            FROM 
+                companies c
+            JOIN 
+                financials f ON c.ticker = f.ticker
+            ORDER BY 
+                f.net_income DESC
             LIMIT {limit}
         """
-        # Assuming `rds` is a valid database connection
+        # Fetch data from the database
         df = pd.read_sql(query, rds)
     except Exception as e:
-        st.warning("Sector data not found — showing example chart instead.")
+        st.warning("Company performance data not found — showing example chart instead.")
         st.exception(e)
 
         # Sample placeholder data in case of failure
         sample_data = {
-            "sector": ["Tech", "Finance", "Energy", "Healthcare", "Real Estate"],
-            "performance": [12.3, 8.7, -3.4, 5.9, 10.2]
+            "company_name": ["Company A", "Company B", "Company C", "Company D", "Company E"],
+            "net_income": [12.3, 8.7, -3.4, 5.9, 10.2]
         }
         df = pd.DataFrame(sample_data)
 
     # Check if the data is empty
     if df.empty:
-        st.info("No sector performance data found.")
+        st.info("No company performance data found.")
         return
 
-    # Create a bar chart to visualize the sector performance
+    # Create a bar chart to visualize the company performance
     fig = px.bar(
         df,
-        x="sector",
-        y="performance",
-        title=f"Top {limit} Sector Performances",
-        color="performance",
+        x="company_name",
+        y="net_income",  # Replace with your chosen performance column if different
+        title=f"Top {limit} Companies by Performance",
+        color="net_income",
         color_continuous_scale="Blues",
-        labels={"sector": "Sector", "performance": "Performance"},
+        labels={"company_name": "Company", "net_income": "Performance (Net Income)"},
     )
 
     fig.update_layout(
