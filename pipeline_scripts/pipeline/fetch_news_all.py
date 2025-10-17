@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, re, json, time, hashlib
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone, timedelta
-from urllib.parse import urlparse, parse_qs, quote_plus
+from urllib.parse import urlparse, parse_qs, quote_plus, urljoin
 import requests, feedparser
 from bs4 import BeautifulSoup
 from readability import Document
@@ -28,6 +28,16 @@ SIGNAL_WORDS = {
 }
 FULLTEXT_TIMEOUT = 12
 FULLTEXT_MAX_CHARS = 12000
+
+ARTICLE_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/123.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://news.google.com/",
+}
 
 SUPABASE_URL          = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE")
@@ -153,7 +163,7 @@ def google_news_rss(
     url = f"https://news.google.com/rss/search?q={enc_q}&hl={lang}&gl={country}&ceid={country}:{lang_code}"
 
     headers = {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"}
-    resp = requests.get(url, headers=headers, timeout=20)
+    resp = requests.get(url, headers=ARTICLE_HEADERS, timeout=20)
     resp.raise_for_status()
     feed = feedparser.parse(resp.content)
 
@@ -173,82 +183,103 @@ def google_news_rss(
         })
     return out
 
-
-def fetch_fulltext(url: str) -> Optional[str]:
+def fetch_article(url: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Fetch an article once (follow redirects) and return (main_text, og_image_url).
+    Uses: AMP fallback, Readability, JSON-LD articleBody, <article>/<main>/<p> merging,
+    and extracts OpenGraph/Twitter image.
+    """
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
-        r = requests.get(url, headers=headers, timeout=20)
+        r = requests.get(url, headers=ARTICLE_HEADERS,
+                         timeout=FULLTEXT_TIMEOUT, allow_redirects=True)
         r.raise_for_status()
         html = r.text
-
-        # 1) Try AMP if available (often cleaner)
+        base = r.url  # after redirects
         soup = BeautifulSoup(html, "lxml")
+
+        # ---- Try AMP (often cleaner) ----
         amp = soup.find("link", rel=lambda v: v and "amphtml" in v.lower())
         if amp and amp.get("href"):
             try:
-                rr = requests.get(amp["href"], headers=headers, timeout=15)
+                rr = requests.get(urljoin(base, amp["href"]), headers=ARTICLE_HEADERS,
+                                  timeout=FULLTEXT_TIMEOUT)
                 rr.raise_for_status()
                 html = rr.text
+                base = rr.url
                 soup = BeautifulSoup(html, "lxml")
             except Exception:
                 pass
 
-        # 2) Readability extraction
-        doc = Document(html)
-        main_html = doc.summary()
-        text = " ".join(BeautifulSoup(main_html, "lxml").stripped_strings)
+        # ---- Readability ----
+        try:
+            doc = Document(html)
+            main_html = doc.summary() or ""
+            text = " ".join(BeautifulSoup(main_html, "lxml").stripped_strings).strip()
+        except Exception:
+            text = ""
 
-        # 3) JSON-LD articleBody fallback
+        # ---- JSON-LD articleBody ----
         if len(text) < 400:
+            def visit(node):
+                nonlocal text
+                if isinstance(node, dict):
+                    typ = str(node.get("@type") or node.get("type") or "").lower()
+                    if "article" in typ and node.get("articleBody"):
+                        cand = str(node["articleBody"]).strip()
+                        if len(cand) > len(text):
+                            text = cand
+                    for v in node.values():
+                        visit(v)
+                elif isinstance(node, list):
+                    for v in node:
+                        visit(v)
+
             for s in soup.find_all("script", type="application/ld+json"):
                 try:
-                    data = json.loads(s.string or "")
+                    visit(json.loads(s.string or ""))
                 except Exception:
                     continue
-                if isinstance(data, dict):
-                    candidates = [data]
-                elif isinstance(data, list):
-                    candidates = data
-                else:
-                    candidates = []
-                for d in candidates:
-                    if not isinstance(d, dict):
-                        continue
-                    t = (d.get("@type") or d.get("type") or "").lower()
-                    if "article" in t and d.get("articleBody"):
-                        text2 = str(d["articleBody"]).strip()
-                        if len(text2) > len(text):
-                            text = text2
                 if len(text) >= 400:
                     break
 
-        # 4) DOM fallbacks (<article>, then all <p>)
+        # ---- DOM fallbacks ----
         if len(text) < 400:
-            art = soup.find("article")
-            if art:
-                text2 = " ".join(art.get_text(" ", strip=True).split())
-                if len(text2) > len(text):
-                    text = text2
+            node = soup.find("article") or soup.find("main")
+            if node:
+                cand = " ".join(node.get_text(" ", strip=True).split())
+                if len(cand) > len(text):
+                    text = cand
 
         if len(text) < 400:
             paras = [p.get_text(" ", strip=True) for p in soup.find_all("p")]
-            text2 = " ".join(paras)
-            if len(text2) > len(text):
-                text = text2
+            cand = " ".join(paras).strip()
+            if len(cand) > len(text):
+                text = cand
 
-        text = text.strip()
-        if not text:
-            return None
-        if len(text) > FULLTEXT_MAX_CHARS:
+        if text and len(text) > FULLTEXT_MAX_CHARS:
             text = text[:FULLTEXT_MAX_CHARS]
-        return text
+
+        # ---- Image: OpenGraph / Twitter ----
+        img = None
+        for key, val in (("property", "og:image"),
+                         ("name", "twitter:image"),
+                         ("property", "og:image:url")):
+            tag = soup.find("meta", attrs={key: val})
+            if tag and tag.get("content"):
+                img = urljoin(base, tag["content"].strip())
+                break
+
+        if not img:
+            tag = soup.find("link", attrs={"rel": "image_src"}) or \
+                  soup.find("meta", attrs={"itemprop": "image"})
+            if tag:
+                c = (tag.get("href") or tag.get("content") or "").strip()
+                if c:
+                    img = urljoin(base, c)
+
+        return (text or None), (img or None)
     except Exception:
-        return None
+        return None, None
 
 def score_item(a: Dict[str, Any], now_ts: int) -> float:
     if a.get("published_ts"):
@@ -292,29 +323,29 @@ def upsert_articles(rows: List[Dict[str, Any]], supabase_url: str, service_role:
     r.raise_for_status()
     return r.json()
 
-
-
 def run_backfill(
     start_date: str,
     end_date: str,
-    step_days: int = None,
+    step_days: int | None = None,
     lang: str = "en-US",
     country: str = "US",
 ):
-    # allow tuning via env without code changes
-    step_days = int(os.getenv("BACKFILL_STEP_DAYS", str(step_days or 10)))  # default 10-day windows
-    overlap_days = int(os.getenv("BACKFILL_OVERLAP_DAYS", "2"))            # small overlap to catch edges
+    # window length and overlap (in days)
+    window_days   = int(os.getenv("BACKFILL_STEP_DAYS", str(step_days or 10)))
+    overlap_days  = int(os.getenv("BACKFILL_OVERLAP_DAYS", "2"))
+    # how far we move the start each iteration
+    step_forward  = max(1, window_days - overlap_days)
 
-    supabase_url = SUPABASE_URL
-    service_role = SUPABASE_SERVICE_ROLE
+    supabase_url  = SUPABASE_URL
+    service_role  = SUPABASE_SERVICE_ROLE
 
-    t0 = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
-    t_end = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+    t0    = datetime.fromisoformat(start_date).date()
+    t_end = datetime.fromisoformat(end_date).date()
 
-    while t0 < t_end:
-        t1 = min(t0 + timedelta(days=step_days), t_end)
-        win_start = t0.date().isoformat()
-        win_end   = t1.date().isoformat()
+    while t0 <= t_end:
+        # inclusive window [t0, t1]
+        t1 = min(t0 + timedelta(days=window_days - 1), t_end)
+        win_start, win_end = t0.isoformat(), t1.isoformat()
 
         # -------- fetch: general bucket for this window --------
         fetched_general: List[Dict[str, Any]] = []
@@ -328,8 +359,7 @@ def run_backfill(
 
         # -------- fetch: specific bucket (user search + tickers) --------
         fetched_specific: List[Dict[str, Any]] = []
-        spec_qs = build_specific_queries(USER_SEARCH, TICKERS_ENV)
-        for q in spec_qs:
+        for q in build_specific_queries(USER_SEARCH, TICKERS_ENV):
             fetched_specific.extend(
                 google_news_rss(
                     q=q, lang=lang, country=country, max_items=120,
@@ -342,7 +372,7 @@ def run_backfill(
             if not a.get("author") and a.get("source"):
                 a["author"] = a["source"]
 
-        # -------- pick N per bucket (no dupes across buckets) --------
+        # pick per-bucket (no dupes across buckets)
         selected = pick_top_per_bucket(
             general_items=fetched_general,
             specific_items=fetched_specific,
@@ -350,39 +380,50 @@ def run_backfill(
             n_specific=N_SPECIFIC,
         )
 
-        # -------- fulltext scrape for the chosen set --------
+        # -------- fulltext + thumbnail --------
         for a in selected:
-            if not a.get("content"):
-                a["content"] = fetch_fulltext(a["url"])
+            needs_img = not a.get("image") or "google.com/s2/favicons" in str(a.get("image"))
+            if not a.get("content") or needs_img:
+                body, ogimg = fetch_article(a["url"])
+
+                if not a.get("content") and body:
+                    a["content"] = body
+
+                if needs_img and ogimg:
+                    a["image"] = ogimg
+
+            # Absolute last resort: if we still have no body, keep a non-empty snippet
+            if not a.get("content") and a.get("snippet"):
+                snip = a["snippet"].strip()
+                if snip:
+                    a["content"] = snip
 
         # -------- upsert rows --------
-        rows = []
+        rows: List[Dict[str, Any]] = []
         for a in selected:
             pub_dt = (
                 datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)
                 if a.get("published_ts") else None
             )
             rows.append({
-                "article_id": article_id_for(a["url"], a["title"]),
-                "title": a["title"],
+                "article_id"   : article_id_for(a["url"], a["title"]),
+                "title"        : a["title"],
                 "canonical_url": a["url"],
-                "source": a.get("source"),
-                "author": a.get("author"),
-                "snippet": a.get("snippet"),
-                "content": a.get("content"),
-                "image_url": a.get("image"),
-                "published_at": pub_dt.isoformat() if pub_dt else None,
-                "score": a.get("score"),
-                "raw": None,
+                "source"       : a.get("source"),
+                "author"       : a.get("author"),
+                "snippet"      : a.get("snippet"),
+                "content"      : a.get("content"),
+                "image_url"    : a.get("image"),
+                "published_at" : pub_dt.isoformat() if pub_dt else None,
+                "score"        : a.get("score"),
+                "raw"          : None,
             })
 
-        if rows:
-            saved = upsert_articles(rows, supabase_url, service_role)
+        saved = upsert_articles(rows, supabase_url, service_role) if rows else []
         print(f"[backfill] {win_start} -> {win_end} : upserted {len(saved)}")
 
-        # slide window forward with optional overlap to avoid gaps
-        t0 = (t1 - timedelta(days=overlap_days)) if overlap_days > 0 else t1
-
+        # advance start of next window; hard safety guarantees progress
+        t0 = t0 + timedelta(days=step_forward)
 
 if __name__ == "__main__":
     missing = [k for k in ("SUPABASE_URL","SUPABASE_SERVICE_ROLE") if not os.getenv(k)]
@@ -390,6 +431,6 @@ if __name__ == "__main__":
         raise SystemExit(f"Missing env vars: {', '.join(missing)}")
     today = datetime.now(timezone.utc).date()
     start = (today - timedelta(days=365)).isoformat()
-    run_backfill(start_date=start, end_date=today.isoformat())
+    # run_backfill(start_date=start, end_date=today.isoformat())
 
 

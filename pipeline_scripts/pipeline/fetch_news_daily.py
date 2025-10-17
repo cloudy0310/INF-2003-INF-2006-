@@ -3,12 +3,18 @@ from __future__ import annotations
 import os, re, json, time, hashlib
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone, timedelta
-from urllib.parse import urlparse, parse_qs, quote_plus
+from urllib.parse import urlparse, parse_qs, quote_plus, urljoin
 import requests, feedparser
 from bs4 import BeautifulSoup
 from readability import Document
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
+from google import genai
+
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+_GEMINI = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # ----------------- Config -----------------
 QUERIES = [
@@ -30,10 +36,18 @@ SIGNAL_WORDS = {
 FULLTEXT_TIMEOUT = 12     # seconds
 FULLTEXT_MAX_CHARS = 12000
 
+ARTICLE_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/123.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://news.google.com/",
+}
+
 SUPABASE_URL          = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE")
-HF_TOKEN              = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
-HF_MODEL              = os.getenv("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
 
 REST = f"{SUPABASE_URL}/rest/v1"
 HDRS = {
@@ -180,81 +194,87 @@ def google_news_rss(
         })
     return out
 
-def fetch_fulltext(url: str) -> Optional[str]:
+def fetch_article(url: str) -> tuple[Optional[str], Optional[str]]:
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
-        r = requests.get(url, headers=headers, timeout=20)
+        r = requests.get(url, headers=ARTICLE_HEADERS, timeout=FULLTEXT_TIMEOUT, allow_redirects=True)
         r.raise_for_status()
         html = r.text
-
-        # 1) Try AMP if available (often cleaner)
+        base = r.url
         soup = BeautifulSoup(html, "lxml")
+
         amp = soup.find("link", rel=lambda v: v and "amphtml" in v.lower())
         if amp and amp.get("href"):
             try:
-                rr = requests.get(amp["href"], headers=headers, timeout=15)
+                rr = requests.get(urljoin(base, amp["href"]), headers=ARTICLE_HEADERS, timeout=FULLTEXT_TIMEOUT)
                 rr.raise_for_status()
                 html = rr.text
+                base = rr.url
                 soup = BeautifulSoup(html, "lxml")
             except Exception:
                 pass
 
-        # 2) Readability extraction
-        doc = Document(html)
-        main_html = doc.summary()
-        text = " ".join(BeautifulSoup(main_html, "lxml").stripped_strings)
+        try:
+            doc = Document(html)
+            main_html = doc.summary() or ""
+            text = " ".join(BeautifulSoup(main_html, "lxml").stripped_strings).strip()
+        except Exception:
+            text = ""
 
-        # 3) JSON-LD articleBody fallback
         if len(text) < 400:
+            def visit(node):
+                nonlocal text
+                if isinstance(node, dict):
+                    typ = str(node.get("@type") or node.get("type") or "").lower()
+                    if "article" in typ and node.get("articleBody"):
+                        cand = str(node["articleBody"]).strip()
+                        if len(cand) > len(text):
+                            text = cand
+                    for v in node.values():
+                        visit(v)
+                elif isinstance(node, list):
+                    for v in node:
+                        visit(v)
             for s in soup.find_all("script", type="application/ld+json"):
                 try:
-                    data = json.loads(s.string or "")
+                    visit(json.loads(s.string or ""))
                 except Exception:
                     continue
-                if isinstance(data, dict):
-                    candidates = [data]
-                elif isinstance(data, list):
-                    candidates = data
-                else:
-                    candidates = []
-                for d in candidates:
-                    if not isinstance(d, dict):
-                        continue
-                    t = (d.get("@type") or d.get("type") or "").lower()
-                    if "article" in t and d.get("articleBody"):
-                        text2 = str(d["articleBody"]).strip()
-                        if len(text2) > len(text):
-                            text = text2
                 if len(text) >= 400:
                     break
 
-        # 4) DOM fallbacks (<article>, then all <p>)
         if len(text) < 400:
-            art = soup.find("article")
-            if art:
-                text2 = " ".join(art.get_text(" ", strip=True).split())
-                if len(text2) > len(text):
-                    text = text2
+            node = soup.find("article") or soup.find("main")
+            if node:
+                cand = " ".join(node.get_text(" ", strip=True).split())
+                if len(cand) > len(text):
+                    text = cand
 
         if len(text) < 400:
             paras = [p.get_text(" ", strip=True) for p in soup.find_all("p")]
-            text2 = " ".join(paras)
-            if len(text2) > len(text):
-                text = text2
+            cand = " ".join(paras).strip()
+            if len(cand) > len(text):
+                text = cand
 
-        text = text.strip()
-        if not text:
-            return None
-        if len(text) > FULLTEXT_MAX_CHARS:
+        if text and len(text) > FULLTEXT_MAX_CHARS:
             text = text[:FULLTEXT_MAX_CHARS]
-        return text
+
+        img = None
+        for key, val in (("property", "og:image"),
+                         ("name", "twitter:image"),
+                         ("property", "og:image:url")):
+            tag = soup.find("meta", attrs={key: val})
+            if tag and tag.get("content"):
+                img = urljoin(base, tag["content"].strip()); break
+        if not img:
+            tag = soup.find("link", attrs={"rel": "image_src"}) or soup.find("meta", attrs={"itemprop": "image"})
+            if tag:
+                c = (tag.get("href") or tag.get("content") or "").strip()
+                if c:
+                    img = urljoin(base, c)
+
+        return (text or None), (img or None)
     except Exception:
-        return None
+        return None, None
 
 def score_item(a: Dict[str, Any], now_ts: int) -> float:
     if a.get("published_ts"):
@@ -303,42 +323,101 @@ def upsert_daily_summary(day: datetime.date, payload: Dict[str, Any]) -> None:
     }), timeout=30)
     r.raise_for_status()
 
-# -------- HF summarizer (optional) --------
+# -------- summarizer (optional) --------
 def _clip(s: str, n: int) -> str:
     s = (s or "").strip().replace("\n", " ")
     return s if len(s) <= n else s[:n] + "…"
 
-def summarize_with_hf(articles: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    if not HF_TOKEN:
-        return None
-    arts = sorted(articles, key=lambda a: a.get("published_ts") or 0, reverse=True)[:12]
-    bullets = []
-    for a in arts:
-        dt = datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M") if a.get("published_ts") else ""
-        bullets.append(f"- [{dt}] {_clip(a.get('title',''), 140)} ({a.get('source','')})")
-    system = (
-        "You are a careful financial writer. Use only the provided bullet list.\n"
-        "Write TWO short paragraphs:\n"
-        "(1) Recent developments (facts-only; 3–4 sentences)\n"
-        "(2) Outlook (cautious; 2–3 sentences)\n"
-        "Avoid advice, targets, speculation."
-    )
-    prompt = system + "\n\nARTICLES:\n" + "\n".join(bullets)
-    api_url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    payload = {"inputs": prompt, "parameters": {"max_new_tokens": 320, "temperature": 0.4}}
-    r = requests.post(api_url, headers=headers, json=payload, timeout=60)
+def _get_prev_summary(day: datetime.date) -> Optional[Dict[str, Any]]:
+    params = {
+        "select": "*",
+        "order": "day.desc",
+        "limit": "1",
+        "day": f"lt.{day.isoformat()}",
+    }
+    r = requests.get(f"{REST}/news_daily_summary", headers=HDRS, params=params, timeout=20)
     r.raise_for_status()
     data = r.json()
-    if isinstance(data, list) and data and "generated_text" in data[0]:
-        gen = data[0]["generated_text"]
-    elif isinstance(data, dict) and "generated_text" in data:
-        gen = data["generated_text"]
+    return data[0] if data else None
+
+def summarize_with_gemini(articles: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Summarize with Google Gemini (new client) into two short paragraphs."""
+    if not _GEMINI:
+        return None
+
+    MAX_ARTS = int(os.getenv("SUMMARY_MAX_ARTS", "10"))
+    arts = sorted(articles, key=lambda a: a.get("published_ts") or 0, reverse=True)[:MAX_ARTS]
+
+    def _clip(s: str, n: int) -> str:
+        s = " ".join((s or "").split())
+        return s if len(s) <= n else s[:n] + "…"
+
+    bullets = []
+    for a in arts:
+        dt = ""
+        if a.get("published_ts"):
+            dt = datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+        bullets.append(f"- [{dt}] {_clip(a.get('title',''), 140)} ({_clip(a.get('source',''), 40)})")
+
+    prompt = (
+        "You are a financial news editor writing a neutral daily market brief. "
+        "Write exactly TWO paragraphs:\n"
+        "1) Recent developments (3–4 full sentences; factual; no quotes)\n"
+        "2) Outlook (2–3 balanced sentences; cautious; no advice/targets)\n"
+        "Do not copy headlines verbatim. No bullets, no meta-text, no ellipses.\n\n"
+        "ARTICLES:\n" + "\n".join(bullets)
+    )
+
+    temperature = float(os.getenv("SUMMARY_TEMPERATURE", "0.2"))
+    max_tokens  = int(os.getenv("GEMINI_MAX_TOKENS", "320"))
+    retries     = int(os.getenv("GEMINI_MAX_RETRIES", "4"))
+
+    # try the env model first, then a few sensible fallbacks
+    primary   = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
+    fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    models_to_try = [m for i, m in enumerate([primary] + fallbacks) if m and m not in ([primary] + fallbacks)[:i]]
+
+    last_err = None
+    text, used_model = None, None
+
+    for model in models_to_try:
+        for attempt in range(retries):
+            try:
+                resp = _GEMINI.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config={"temperature": temperature, "max_output_tokens": max_tokens}
+                )
+                text = (resp.text or "").strip()
+                if not text:
+                    raise RuntimeError("Empty Gemini response")
+                used_model = model
+                break
+            except Exception as e:
+                last_err = e
+                # If the model isn't available for your key, move on immediately
+                if "404" in str(e) or "not found" in str(e).lower():
+                    break
+                time.sleep(2 * (attempt + 1))
+        if text:
+            break
+
+    if not text:
+        print(f"[daily] Gemini summary failed after retries: {last_err}")
+        return None
     else:
-        gen = str(data)
-    parts = [p.strip() for p in gen.strip().split("\n\n") if p.strip()]
+        print(f"[daily] Gemini summary used model={used_model}")
+
+    # Normalize & make sure there are two paragraphs ending cleanly
+    parts = [p.strip() for p in text.replace("\u2026", "...").split("\n\n") if p.strip()]
+    if len(parts) < 2:
+        sents = re.split(r"(?<=[.!?])\s+", text.strip())
+        mid = max(1, len(sents)//2)
+        parts = [" ".join(sents[:mid]), " ".join(sents[mid:])]
+    parts = [(p.rstrip(" .") + ".") for p in parts[:2]]
+
     return {
-        "summary": parts[0] if parts else gen.strip(),
+        "summary": parts[0],
         "outlook": parts[1] if len(parts) > 1 else "",
         "article_ids": [article_id_for(a.get("url",""), a.get("title","")) for a in arts],
         "sentiment_score": None,
@@ -375,14 +454,31 @@ def run(top_k: int = 25, lang="en-US", country="US") -> None:
         n_specific=N_SPECIFIC,
     )
 
-    # -------- fulltext (scrape) for the chosen set --------
+    # -------- enrich: fulltext + thumbnail --------
+    enriched: List[Dict[str, Any]] = []
     for a in ranked:
-        if not a.get("content"):
-            a["content"] = fetch_fulltext(a["url"])
+        needs_img = not a.get("image") or "google.com/s2/favicons" in str(a.get("image"))
+        if not a.get("content") or needs_img:
+            body, ogimg = fetch_article(a["url"])
+            if body and not a.get("content"):
+                a["content"] = body
+            if ogimg and needs_img:
+                a["image"] = ogimg
+
+        # last resort: keep a non-empty snippet as content so UI never looks blank
+        if not a.get("content") and a.get("snippet"):
+            snip = a["snippet"].strip()
+            if snip:
+                a["content"] = snip
+
+        enriched.append(a)
+
+    # honor top_k consistently (DB + summary)
+    selected = enriched[:top_k]
 
     # -------- upsert to Supabase --------
     rows = []
-    for a in ranked:
+    for a in selected:
         pub_dt = (
             datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)
             if a.get("published_ts") else None
@@ -403,20 +499,58 @@ def run(top_k: int = 25, lang="en-US", country="US") -> None:
     saved = upsert_articles(rows)
     print(f"[daily] upserted {len(saved)} articles")
 
-    # -------- daily summary (optional, uses the final ranked set) --------
-    today = datetime.now(timezone.utc).date()
+    # -------- daily summary --------
+    now = datetime.now(timezone.utc)
+    today = now.date()
+
+    # strict "today" first
     todays = [
-        a for a in ranked
+        a for a in selected
         if a.get("published_ts") and
            datetime.fromtimestamp(a["published_ts"], tz=timezone.utc).date() == today
     ]
-    if HF_TOKEN and todays:
-        summ = summarize_with_hf(todays)
+
+    recent_window_h = int(os.getenv("SUMMARY_RECENT_HOURS", "36"))
+    recent = [
+        a for a in selected
+        if a.get("published_ts") and
+           (now - datetime.fromtimestamp(a["published_ts"], tz=timezone.utc)).total_seconds() <= recent_window_h * 3600
+    ]
+
+    cand = todays if todays else recent
+    print(f"[daily] summary candidates — today={len(todays)} recent({recent_window_h}h)={len(recent)} model={GEMINI_MODEL}")
+
+    if GEMINI_API_KEY and cand:
+        summ = summarize_with_gemini(cand)
         if summ:
             upsert_daily_summary(today, summ)
-            print("[daily] saved daily summary")
+            src = "today" if cand is todays else f"recent{recent_window_h}h"
+            print(f"[daily] saved daily summary from {src} (n={len(cand)})")
+        else:
+            prev = _get_prev_summary(today)
+            if prev:
+                upsert_daily_summary(today, {
+                    "summary": prev.get("summary",""),
+                    "outlook": prev.get("outlook",""),
+                    "sentiment_score": prev.get("sentiment_score"),
+                    "article_ids": prev.get("article_ids", []),
+                })
+                print("[daily] Gemini failed; copied yesterday's summary")
+            else:
+                print("[daily] Gemini failed and no previous summary to copy")
     else:
-        print("[daily] skipped summary (no token or no articles)")
+        prev = _get_prev_summary(today)
+        if prev:
+            upsert_daily_summary(today, {
+                "summary": prev.get("summary",""),
+                "outlook": prev.get("outlook",""),
+                "sentiment_score": prev.get("sentiment_score"),
+                "article_ids": prev.get("article_ids", []),
+            })
+            print("[daily] no candidates/key; copied yesterday's summary")
+        else:
+            print("[daily] skipped summary (no candidates and no previous summary)")
+
 
 
 if __name__ == "__main__":
