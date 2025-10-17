@@ -23,7 +23,6 @@ engine = create_engine(
 )
 
 def page():
-    st.set_page_config(page_title="Update Details", layout="centered")
 
     if "user" not in st.session_state:
         st.warning("Please log in first.")

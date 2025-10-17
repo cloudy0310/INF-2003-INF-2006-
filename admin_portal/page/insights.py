@@ -4,7 +4,6 @@ import plotly.express as px
 
 def page(rds=None, dynamo=None):
     # Set up the Streamlit page configuration
-    st.set_page_config(page_title="Market Insights", layout="wide")
     st.title("📊 Market Insights")
     st.caption("Top performing companies from recent financial data")
 

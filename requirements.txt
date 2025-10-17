@@ -11,3 +11,6 @@ streamlit-option-menu
 sqlalchemy
 boto3
 streamlit-cookies-manager
+python-jose
+pyasn1==0.4.8
+pyasn1-modules==0.2.8

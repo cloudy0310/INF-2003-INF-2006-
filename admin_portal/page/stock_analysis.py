@@ -9,12 +9,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-# UI-only page: analytics pulled via api.stock_analysis*, watchlist via api.watchlist
 from api.stock_analysis import get_company_info, get_financials, get_stock_prices
 from api.stock_analysis_helper import evaluate_strategy_for_timeframes
 from api.watchlist import get_or_create_default_watchlist, upsert_watchlist_item
 
-FIXED_USER_ID = os.getenv("WATCHLIST_USER_ID")  # e.g. a UUID in your DB
+FIXED_USER_ID = os.getenv("WATCHLIST_USER_ID")
 
 
 def page(rds=None, dynamo=None, supabase=None, **_):
@@ -357,7 +356,7 @@ def page(rds=None, dynamo=None, supabase=None, **_):
         if st.button("➕ Add to watchlist"):
             try:
                 wl = get_or_create_default_watchlist(rds, FIXED_USER_ID)
-                # default allocation 0.0; adjust if you want a field on this page
+                # default allocation 0.0;
                 upsert_watchlist_item(rds, wl["watchlist_id"], ticker, 0.0)
                 st.success(f"Added {ticker} to your watchlist.")
             except Exception as e:

@@ -24,7 +24,6 @@ except Exception:
 # --------------------------
 def page():
     load_dotenv()
-    st.set_page_config(layout="wide", page_title="User Portal")
 
     # --------------------------
     # Database connections
