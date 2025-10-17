@@ -9,6 +9,11 @@ import sys
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
+    
+PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PACKAGE_ROOT not in sys.path:
+    sys.path.append(PACKAGE_ROOT)
+    
 try:
     import boto3
 except Exception:
