@@ -12,13 +12,58 @@ from api.display_news import list_news, get_daily_summary
 # --- Summary banner styles ---
 BANNER_CSS = """
 <style>
-.summary-card{background:linear-gradient(135deg,#0b1020,#0a0f1a);
-  border:1px solid #223047;border-radius:16px;padding:18px 20px;}
-.summary-title{font-size:1.1rem;font-weight:700;margin:0 0 8px;
-  display:flex;align-items:center;gap:.6rem}
-.summary-badge{padding:2px 8px;border-radius:10px;font-size:.72rem;
-  background:#1f2937;color:#9ca3af}
-.summary-body p{margin:0 0 6px;line-height:1.55}
+.summary-card{
+  border-radius:16px;
+  padding:20px 22px;
+  border:1px solid rgba(120,120,120,.18);
+  background:linear-gradient(135deg,#0b1020,#0a0f1a);
+  box-shadow:0 10px 24px rgba(2,6,23,.35), inset 0 1px 0 rgba(255,255,255,.03);
+}
+[data-theme="light"] .summary-card{
+  background:linear-gradient(180deg,#ffffff,#f8fafc);
+  border-color:rgba(0,0,0,.08);
+  box-shadow:0 8px 20px rgba(2,6,23,.06), inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.summary-title{
+  display:flex; align-items:center; gap:.6rem;
+  font-size:1.15rem; font-weight:800; letter-spacing:.2px;
+  margin:0 0 6px;
+}
+.summary-date{
+  font-size:.78rem; padding:2px 10px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.18); color:#e5e7eb;
+}
+[data-theme="light"] .summary-date{
+  border-color:rgba(0,0,0,.12); color:#111827; background:#eef2f7;
+}
+
+.summary-stale{
+  margin-left:.25rem;
+  font-size:.72rem; padding:2px 8px; border-radius:10px;
+  background:#1f2937; color:#9ca3af; border:1px solid rgba(255,255,255,.15);
+}
+[data-theme="light"] .summary-stale{
+  background:#f3f4f6; color:#111827; border-color:rgba(0,0,0,.1);
+}
+
+.summary-sentiment{
+  margin-left:auto; font-size:.78rem; padding:2px 10px; border-radius:8px;
+  border:1px solid transparent;
+}
+.sent-pos{ color:#16a34a; background:rgba(22,163,74,.14); border-color:rgba(22,163,74,.28); }
+.sent-neg{ color:#ef4444; background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.28); }
+.sent-neu{ color:#6b7280; background:rgba(107,114,128,.14); border-color:rgba(107,114,128,.28); }
+
+.summary-body{ font-size:.98rem; line-height:1.6; color:#e5e7eb; }
+[data-theme="light"] .summary-body{ color:#0f172a; }
+.summary-body p{ margin:0 0 8px; }
+.summary-outlook{
+  margin-top:.5rem; padding-top:.55rem;
+  border-top:1px dashed rgba(255,255,255,.18);
+  opacity:.98;
+}
+[data-theme="light"] .summary-outlook{ border-top-color:rgba(0,0,0,.12); }
 </style>
 """
 
@@ -36,14 +81,22 @@ def _normalize_para(txt: str) -> str:
     return t
 
 def render_daily_summary_card(s: dict, today: date):
-    """Pretty summary banner with fallback badge if showing an older day."""
     if not s:
         return
-    day_str = s.get("day")
-    # title + stale badge if we’re showing a prior day
-    is_stale = day_str and str(day_str) != today.isoformat()
-    title = f"Daily Summary — {day_str or today.isoformat()}"
-    badge = f'<span class="summary-badge">showing last available</span>' if is_stale else ""
+
+    day_str = s.get("day") or today.isoformat()
+    is_stale = str(day_str) != today.isoformat()
+
+    # Sentiment badge (optional; defaults to Neutral)
+    score = s.get("sentiment_score", None)
+    if score is None:
+        sent_cls, sent_label = "sent-neu", "Neutral"
+    elif score >= 0.15:
+        sent_cls, sent_label = "sent-pos", f"Positive {score:+.2f}"
+    elif score <= -0.15:
+        sent_cls, sent_label = "sent-neg", f"Negative {score:+.2f}"
+    else:
+        sent_cls, sent_label = "sent-neu", f"Neutral {score:+.2f}"
 
     para1 = _normalize_para(s.get("summary", ""))
     para2 = _normalize_para(s.get("outlook", ""))
@@ -52,10 +105,14 @@ def render_daily_summary_card(s: dict, today: date):
     st.markdown(
         f"""
         <div class="summary-card">
-          <div class="summary-title">📰 {title} {badge}</div>
+          <div class="summary-title">
+            <span> Daily Summary</span>
+            <span class="summary-date">{day_str}</span>
+            {'<span class="summary-stale">showing last available</span>' if is_stale else ''}
+          </div>
           <div class="summary-body">
             {'<p>'+para1+'</p>' if para1 else ''}
-            {'<p><em>'+para2+'</em></p>' if para2 else ''}
+            {'<p class="summary-outlook"><em>Outlook:</em> '+para2+'</p>' if para2 else ''}
           </div>
         </div>
         """,
