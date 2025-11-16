@@ -23,16 +23,26 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # -------------------------------
 # 3️⃣ Streamlit page
 # -------------------------------
-def page():
+def page(supabase=None):
+    """
+    Display Market Insights page.
+    
+    Parameters:
+    supabase: optional Supabase client. If not provided, will use the global client.
+    """
     st.set_page_config(page_title="Market Insights", layout="wide")
     st.title("📊 Market Insights")
     st.caption("Top performing companies based on recent financial data")
 
-    if supabase is None:
+    # Use the passed supabase client or fallback to the one we created
+    client = supabase or globals().get("supabase")
+    if client is None:
         st.error("Supabase client is not initialized.")
         st.stop()
 
+    # -------------------------------
     # Filter: number of companies to display
+    # -------------------------------
     st.subheader("🔍 Company Performance Overview")
     limit = st.slider("Number of companies to show", 5, 50, 20)
 
@@ -41,7 +51,7 @@ def page():
     # -------------------------------
     try:
         financials_resp = (
-            supabase.table("financials")
+            client.table("financials")
             .select("ticker, net_income")
             .order("net_income", desc=True)
             .limit(limit)
@@ -62,10 +72,9 @@ def page():
     # Fetch company names
     # -------------------------------
     tickers = financials_df["ticker"].tolist()
-
     try:
         companies_resp = (
-            supabase.table("companies")
+            client.table("companies")
             .select("ticker, name")
             .in_("ticker", tickers)
             .execute()
