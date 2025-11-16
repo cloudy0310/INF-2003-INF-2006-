@@ -1,127 +1,66 @@
-# insight.py
-
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-from supabase import create_client
-from dotenv import load_dotenv
+# insights.py
+from supabase import create_client, Client
 import os
 
-# -------------------------------
-# 1️⃣ Load environment variables
-# -------------------------------
-load_dotenv()
+# Replace with your Supabase URL and key
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or "https://your-project.supabase.co"
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or "your-anon-or-service-role-key"
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")  # Use your anon key
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# -------------------------------
-# 2️⃣ Create Supabase client
-# -------------------------------
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# -------------------------------
-# 3️⃣ Streamlit page
-# -------------------------------
-def page(supabase=None):
+def fetch_financials(ticker: str):
     """
-    Display Market Insights page.
-    
-    Parameters:
-    supabase: optional Supabase client. If not provided, will use the global client.
+    Fetch financial records for a given ticker.
+    Returns a list of dictionaries.
     """
-    st.set_page_config(page_title="Market Insights", layout="wide")
-    st.title("📊 Market Insights")
-    st.caption("Top performing companies based on recent financial data")
-
-    # Use the passed supabase client or fallback to the one we created
-    client = supabase or globals().get("supabase")
-    if client is None:
-        st.error("Supabase client is not initialized.")
-        st.stop()
-
-    # -------------------------------
-    # Filter: number of companies to display
-    # -------------------------------
-    st.subheader("🔍 Company Performance Overview")
-    limit = st.slider("Number of companies to show", 5, 50, 20)
-
-    # -------------------------------
-    # Fetch financials
-    # -------------------------------
     try:
-        financials_resp = (
-            supabase.table("financials")
-            .select("ticker, net_income")
-            .neq("net_income", None)  # Only fetch rows with net_income
+        response = (
+            supabase
+            .table("financials")
+            .select("*")
+            .eq("ticker", ticker)
             .order("period_end", desc=True)
-            .limit(limit)
+            .limit(5)
             .execute()
         )
-        financials_df = pd.DataFrame(financials_resp.data)
+
+        if response.data:
+            # Safely convert numeric fields
+            safe_data = []
+            numeric_fields = [
+                "revenue", "cost_of_revenue", "gross_profit", "operating_income", "net_income",
+                "eps_basic", "eps_diluted", "ebitda", "gross_margin", "operating_margin",
+                "ebitda_margin", "net_profit_margin", "total_assets", "total_liabilities",
+                "total_equity", "cash_and_equivalents", "total_debt", "operating_cashflow",
+                "capital_expenditures", "free_cash_flow", "shares_outstanding", "shares_float",
+                "market_cap", "price_to_earnings", "forward_pe", "peg_ratio", "revenue_growth",
+                "earnings_growth", "recommendation_mean"
+            ]
+
+            for record in response.data:
+                for field in numeric_fields:
+                    if field in record and (record[field] is None or str(record[field]).lower() == "none"):
+                        record[field] = None  # Ensure PostgreSQL-friendly numeric value
+                safe_data.append(record)
+
+            return safe_data
+        else:
+            print(f"No financial records found for {ticker}")
+            return []
 
     except Exception as e:
-        st.error("Failed to fetch financial data from Supabase.")
-        st.exception(e)
-        return
+        print("Failed to fetch financial data from Supabase.")
+        print("Error:", e)
+        return []
 
-    if financials_df.empty:
-        st.info("No financial data available.")
-        return
-
-    # -------------------------------
-    # Fetch company names
-    # -------------------------------
-    tickers = financials_df["ticker"].tolist()
-    try:
-        companies_resp = (
-            client.table("companies")
-            .select("ticker, name")
-            .in_("ticker", tickers)
-            .execute()
-        )
-        companies_df = pd.DataFrame(companies_resp.data)
-    except Exception as e:
-        st.warning("Failed to fetch company names.")
-        st.exception(e)
-        companies_df = pd.DataFrame({"ticker": tickers, "name": tickers})  # fallback
-
-    # -------------------------------
-    # Merge financials + company names
-    # -------------------------------
-    df = financials_df.merge(companies_df, on="ticker", how="left")
-    df = df.rename(columns={"name": "company_name"})
-
-    # -------------------------------
-    # Plot bar chart
-    # -------------------------------
-    fig = px.bar(
-        df,
-        x="company_name",
-        y="net_income",
-        title=f"Top {limit} Companies by Net Income",
-        color="net_income",
-        color_continuous_scale="Blues",
-        labels={"company_name": "Company", "net_income": "Net Income"},
-    )
-
-    fig.update_layout(
-        height=500,
-        margin=dict(l=20, r=20, t=50, b=20),
-        xaxis_tickangle=-45
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # -------------------------------
-    # Show raw data
-    # -------------------------------
-    with st.expander("🧾 Show raw data"):
-        st.dataframe(df, use_container_width=True)
-
-
-# -------------------------------
-# 4️⃣ Run page if called directly
-# -------------------------------
 if __name__ == "__main__":
-    page()
+    ticker_input = input("Enter ticker symbol (e.g., AAPL): ").upper()
+    financials = fetch_financials(ticker_input)
+
+    if financials:
+        print(f"\nLatest financials for {ticker_input}:")
+        for record in financials:
+            print(record)
+    else:
+        print("No data to display.")
