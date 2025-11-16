@@ -109,9 +109,10 @@ def render():
         "News": "/page/news",
         "Stock Analysis": "/page/stock_analysis",
         "Watchlist": "/page/watchlist",
+         "Insights": "page.insights",
     }
-    page_icons = ["house", "newspaper", "bar-chart", "bookmark"]
-
+    page_icons = ["house", "newspaper", "bar-chart", "bookmark", "pie-chart"]
+    
     # --- Top navigation bar ---
     selected = option_menu(
         menu_title=None,
