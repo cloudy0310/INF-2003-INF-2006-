@@ -1,17 +1,28 @@
+# insight.py
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 from supabase import create_client
+from dotenv import load_dotenv
 import os
 
-# Load environment variables
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE")
+# -------------------------------
+# 1️⃣ Load environment variables
+# -------------------------------
+load_dotenv()
 
-# Create Supabase client
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")  # Use your anon key
+
+# -------------------------------
+# 2️⃣ Create Supabase client
+# -------------------------------
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-
+# -------------------------------
+# 3️⃣ Streamlit page
+# -------------------------------
 def page():
     st.set_page_config(page_title="Market Insights", layout="wide")
     st.title("📊 Market Insights")
@@ -21,12 +32,12 @@ def page():
         st.error("Supabase client is not initialized.")
         st.stop()
 
-    # Filters
+    # Filter: number of companies to display
     st.subheader("🔍 Company Performance Overview")
     limit = st.slider("Number of companies to show", 5, 50, 20)
 
     # -------------------------------
-    # 1. Fetch financials (net income)
+    # Fetch financials
     # -------------------------------
     try:
         financials_resp = (
@@ -36,43 +47,43 @@ def page():
             .limit(limit)
             .execute()
         )
-
         financials_df = pd.DataFrame(financials_resp.data)
 
     except Exception as e:
-        st.error("Failed to fetch financial data.")
+        st.error("Failed to fetch financial data from Supabase.")
         st.exception(e)
         return
 
-    # Handle empty data
     if financials_df.empty:
         st.info("No financial data available.")
         return
 
     # -------------------------------
-    # 2. Fetch company names
+    # Fetch company names
     # -------------------------------
     tickers = financials_df["ticker"].tolist()
 
-    companies_resp = (
-        supabase.table("companies")
-        .select("ticker, name")
-        .in_("ticker", tickers)
-        .execute()
-    )
-
-    companies_df = pd.DataFrame(companies_resp.data)
+    try:
+        companies_resp = (
+            supabase.table("companies")
+            .select("ticker, name")
+            .in_("ticker", tickers)
+            .execute()
+        )
+        companies_df = pd.DataFrame(companies_resp.data)
+    except Exception as e:
+        st.warning("Failed to fetch company names.")
+        st.exception(e)
+        companies_df = pd.DataFrame({"ticker": tickers, "name": tickers})  # fallback
 
     # -------------------------------
-    # 3. Merge companies + financials
+    # Merge financials + company names
     # -------------------------------
     df = financials_df.merge(companies_df, on="ticker", how="left")
-
-    # Rename for plotting
     df = df.rename(columns={"name": "company_name"})
 
     # -------------------------------
-    # 4. Plot chart
+    # Plot bar chart
     # -------------------------------
     fig = px.bar(
         df,
@@ -81,10 +92,7 @@ def page():
         title=f"Top {limit} Companies by Net Income",
         color="net_income",
         color_continuous_scale="Blues",
-        labels={
-            "company_name": "Company",
-            "net_income": "Net Income",
-        },
+        labels={"company_name": "Company", "net_income": "Net Income"},
     )
 
     fig.update_layout(
@@ -100,3 +108,10 @@ def page():
     # -------------------------------
     with st.expander("🧾 Show raw data"):
         st.dataframe(df, use_container_width=True)
+
+
+# -------------------------------
+# 4️⃣ Run page if called directly
+# -------------------------------
+if __name__ == "__main__":
+    page()
