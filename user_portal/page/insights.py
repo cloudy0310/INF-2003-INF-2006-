@@ -1,4 +1,4 @@
-# insight.py
+# insights.py
 
 import streamlit as st
 import pandas as pd
@@ -26,7 +26,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 def page(supabase=None):
     """
     Display Market Insights page.
-    
+
     Parameters:
     supabase: optional Supabase client. If not provided, will use the global client.
     """
@@ -51,22 +51,26 @@ def page(supabase=None):
     # -------------------------------
     try:
         financials_resp = (
-            supabase.table("financials")
-            .select("ticker, net_income")
-            .neq("net_income", None)  # Only fetch rows with net_income
+            client.table("financials")
+            .select("ticker, net_income, period_end")
+            .not_("net_income", "is.null")  # Proper filter for numeric column
             .order("period_end", desc=True)
-            .limit(limit)
+            .limit(limit * 2)  # Fetch extra in case of duplicates
             .execute()
         )
         financials_df = pd.DataFrame(financials_resp.data)
 
+        if financials_df.empty:
+            st.info("No financial data available.")
+            return
+
+        # Keep only top 'limit' after removing missing net_income
+        financials_df = financials_df[financials_df["net_income"].notnull()]
+        financials_df = financials_df.head(limit)
+
     except Exception as e:
         st.error("Failed to fetch financial data from Supabase.")
         st.exception(e)
-        return
-
-    if financials_df.empty:
-        st.info("No financial data available.")
         return
 
     # -------------------------------
@@ -99,7 +103,7 @@ def page(supabase=None):
         df,
         x="company_name",
         y="net_income",
-        title=f"Top {limit} Companies by Net Income",
+        title=f"Top {len(df)} Companies by Net Income",
         color="net_income",
         color_continuous_scale="Blues",
         labels={"company_name": "Company", "net_income": "Net Income"},
