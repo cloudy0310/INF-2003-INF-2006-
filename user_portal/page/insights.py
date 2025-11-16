@@ -53,11 +53,12 @@ def page(supabase=None):
         financials_resp = (
             client.table("financials")
             .select("ticker, net_income, period_end")
-            .not_("net_income", "is.null")  # Proper filter for numeric column
+            .filter("net_income", "not.is", None)  # Only fetch rows where net_income IS NOT NULL
             .order("period_end", desc=True)
-            .limit(limit * 2)  # Fetch extra in case of duplicates
+            .limit(limit * 2)
             .execute()
         )
+
         financials_df = pd.DataFrame(financials_resp.data)
 
         if financials_df.empty:
