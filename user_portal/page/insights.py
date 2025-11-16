@@ -1,66 +1,90 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 import plotly.express as px
+from supabase import create_client
+import os
 
-def page(rds=None, dynamo=None):
-    # Set up the Streamlit page configuration
+# Load environment variables
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE")
+
+# Create Supabase client
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+def page():
     st.set_page_config(page_title="Market Insights", layout="wide")
     st.title("📊 Market Insights")
-    st.caption("Top performing companies from recent financial data")
+    st.caption("Top performing companies based on recent financial data")
 
-    if rds is None:
-        st.error("RDS engine is required.")
+    if supabase is None:
+        st.error("Supabase client is not initialized.")
         st.stop()
 
-    # Optional filter for number of companies to display
+    # Filters
     st.subheader("🔍 Company Performance Overview")
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        limit = st.slider("Number of companies to show", 5, 50, 20)
+    limit = st.slider("Number of companies to show", 5, 50, 20)
 
+    # -------------------------------
+    # 1. Fetch financials (net income)
+    # -------------------------------
     try:
-        # Query to get company performance data from 'companies' and 'financials' tables
-        query = f"""
-            SELECT 
-                c.name AS company_name, 
-                f.net_income
-            FROM 
-                companies c
-            JOIN 
-                financials f ON c.ticker = f.ticker
-            WHERE 
-                f.net_income IS NOT NULL  -- Filter out rows with NULL net_income
-            ORDER BY 
-                f.net_income DESC
-            LIMIT {limit}
-        """
-        # Fetch data from the database
-        df = pd.read_sql(query, rds)
+        financials_resp = (
+            supabase.table("financials")
+            .select("ticker, net_income")
+            .order("net_income", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        financials_df = pd.DataFrame(financials_resp.data)
+
     except Exception as e:
-        st.warning("Company performance data not found — showing example chart instead.")
+        st.error("Failed to fetch financial data.")
         st.exception(e)
-
-        # Sample placeholder data in case of failure
-        sample_data = {
-            "company_name": ["Company A", "Company B", "Company C", "Company D", "Company E"],
-            "net_income": [12.3, 8.7, -3.4, 5.9, 10.2]
-        }
-        df = pd.DataFrame(sample_data)
-
-    # Check if the data is empty
-    if df.empty:
-        st.info("No company performance data found.")
         return
 
-    # Create a bar chart to visualize the company performance
+    # Handle empty data
+    if financials_df.empty:
+        st.info("No financial data available.")
+        return
+
+    # -------------------------------
+    # 2. Fetch company names
+    # -------------------------------
+    tickers = financials_df["ticker"].tolist()
+
+    companies_resp = (
+        supabase.table("companies")
+        .select("ticker, name")
+        .in_("ticker", tickers)
+        .execute()
+    )
+
+    companies_df = pd.DataFrame(companies_resp.data)
+
+    # -------------------------------
+    # 3. Merge companies + financials
+    # -------------------------------
+    df = financials_df.merge(companies_df, on="ticker", how="left")
+
+    # Rename for plotting
+    df = df.rename(columns={"name": "company_name"})
+
+    # -------------------------------
+    # 4. Plot chart
+    # -------------------------------
     fig = px.bar(
         df,
         x="company_name",
-        y="net_income",  # Replace with your chosen performance column if different
-        title=f"Top {limit} Companies by Performance",
+        y="net_income",
+        title=f"Top {limit} Companies by Net Income",
         color="net_income",
         color_continuous_scale="Blues",
-        labels={"company_name": "Company", "net_income": "Performance (Net Income)"},
+        labels={
+            "company_name": "Company",
+            "net_income": "Net Income",
+        },
     )
 
     fig.update_layout(
@@ -69,9 +93,10 @@ def page(rds=None, dynamo=None):
         xaxis_tickangle=-45
     )
 
-    # Display the chart
     st.plotly_chart(fig, use_container_width=True)
 
-    # Optionally show the raw data table
+    # -------------------------------
+    # Show raw data
+    # -------------------------------
     with st.expander("🧾 Show raw data"):
         st.dataframe(df, use_container_width=True)
