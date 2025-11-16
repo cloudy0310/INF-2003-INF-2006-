@@ -51,9 +51,10 @@ def page(supabase=None):
     # -------------------------------
     try:
         financials_resp = (
-            client.table("financials")
+            supabase.table("financials")
             .select("ticker, net_income")
-            .order("net_income", desc=True)
+            .neq("net_income", None)  # Only fetch rows with net_income
+            .order("period_end", desc=True)
             .limit(limit)
             .execute()
         )
