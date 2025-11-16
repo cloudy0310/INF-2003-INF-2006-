@@ -34,7 +34,7 @@ def render():
     st.title("📊 Admin Dashboard")
 
     # --- Define pages and icons ---
-    page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist"]
+    page_options = ["Admin Home", "User Home", "News", "Stock Analysis", "Watchlist","Insights"]
     page_paths = {
         "Admin Home": "/page/admin_home",
         "User Home": "/page/home",

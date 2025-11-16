@@ -103,13 +103,13 @@ def render():
     st.title("📊 Dashboard")
 
     # --- Define pages and icons ---
-    page_options = ["User Home", "News", "Stock Analysis", "Watchlist"]
+    page_options = ["User Home", "News", "Stock Analysis", "Watchlist","Insights"]
     page_paths = {
         "User Home": "/page/home",
         "News": "/page/news",
         "Stock Analysis": "/page/stock_analysis",
         "Watchlist": "/page/watchlist",
-         "Insights": "page.insights",
+        "Insights": "page.insights",
     }
     page_icons = ["house", "newspaper", "bar-chart", "bookmark", "pie-chart"]
     
