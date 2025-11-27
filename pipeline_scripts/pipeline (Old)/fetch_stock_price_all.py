@@ -1,6 +1,4 @@
-"""
-fetch_stock_price_all.py - DynamoDB/Supabase writer with strict AWS session + rich logs
-"""
+
 from __future__ import annotations
 from dotenv import load_dotenv
 import os, json
@@ -10,9 +8,8 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 
-load_dotenv()  # loads .env from current working dir
+load_dotenv() 
 
-# optional DB libs
 try:
     from supabase import create_client
 except Exception:
@@ -157,13 +154,11 @@ def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = N
     if boto3 is None:
         raise RuntimeError("boto3 not installed")
 
-    # Force the exact same signing context your CLI uses
     region  = (region or os.getenv("AWS_REGION", "ap-southeast-1")).strip()
     profile = os.getenv("AWS_PROFILE", "default").strip()
 
     session = boto3.Session(profile_name=profile, region_name=region)
 
-    # Log identity + endpoint so we can see exactly what’s used
     sts = session.client("sts")
     who = sts.get_caller_identity()
     ddb_client = session.client("dynamodb")
@@ -292,7 +287,6 @@ if __name__ == "__main__":
         if not ddb_table:
             print("[main] DDB_TABLE not set — not writing")
         else:
-            # optional: strip proxies if your network injects headers
             for k in ("HTTP_PROXY","HTTPS_PROXY","http_proxy","https_proxy"):
                 os.environ.pop(k, None)
             upsert_dynamodb(df, ddb_table, region=region)

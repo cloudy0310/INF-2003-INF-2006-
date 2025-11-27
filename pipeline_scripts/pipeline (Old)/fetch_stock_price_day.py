@@ -1,20 +1,4 @@
-"""
-Updated from fetch_stock_price_all.py to support a daily scheduled job that:
- - fetches sufficient historical data for each ticker (lookback window)
- - computes indicators (MACD, RSI, Bollinger) on the history
- - extracts exactly the *previous trading day's* row per ticker (handles weekends/holidays)
- - upserts only that single row per ticker to Supabase or DynamoDB
 
-Features:
- - env / CLI controls: DAILY_UPDATE (or --daily), LOOKBACK_DAYS, TICKERS, USE_DYNAMODB
- - safer chunking & numeric normalization
- - helpful logging for missing rows
-
-Requirements: pandas, numpy, yfinance, python-dotenv, requests (for REST fallback)
-Optional: supabase (supabase-py), boto3
-
-Scheduling suggestions (examples shown in README below): cron, systemd timer, AWS EventBridge -> Lambda (packaged), or GitHub Actions.
-"""
 from __future__ import annotations
 from dotenv import load_dotenv
 from pathlib import Path
@@ -30,7 +14,6 @@ import datetime
 
 load_dotenv()
 
-# optional DB libs
 try:
     from supabase import create_client
 except Exception:
@@ -41,7 +24,6 @@ try:
 except Exception:
     boto3 = None
 
-# requests for REST fallback
 try:
     import requests
 except Exception:
@@ -110,7 +92,6 @@ def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-# ---------- Helper utilities ----------
 def chunked(iterable, size=500):
     it = iter(iterable)
     while True:
@@ -124,7 +105,6 @@ def chunked(iterable, size=500):
             break
         yield chunk
 
-# ---------- Robust Supabase upsert (client + REST fallback) ----------
 def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflict: str = "ticker,date") -> None:
     if df is None or df.empty:
         print("[upsert_supabase] dataframe empty, nothing to write")
@@ -195,7 +175,7 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
             print(f"[rest] upsert exception for chunk {i}-{i+len(chunk)}: {e}")
             raise
 
-# ---------- DynamoDB upsert (unchanged) ----------
+# ---------- DynamoDB upsert ----------
 def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = None) -> None:
     if boto3 is None:
         raise RuntimeError("boto3 not installed")
@@ -223,15 +203,8 @@ def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = N
                 batch.put_item(Item=item)
         print(f"[dynamodb] wrote {len(chunk)} items")
 
-# ---------- Fetch previous trading day and compose single-row dataframe ----------
+
 def fetch_previous_trading_rows(tickers: List[str], lookback_days: int = 180) -> pd.DataFrame:
-    """
-    For each ticker:
-      - fetch `lookback_days` of history (sufficient to compute indicators)
-      - compute indicators on the whole history
-      - determine the previous trading day relative to `today` and extract that row
-    Returns concatenated DataFrame with one row per ticker (for prev trading day)
-    """
     frames = []
     today = datetime.date.today()
 
@@ -249,10 +222,10 @@ def fetch_previous_trading_rows(tickers: List[str], lookback_days: int = 180) ->
             df = hist.reset_index().rename(columns={
                 "Date": "date", "Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"
             })
-            # normalize date column (no tz)
+    
             df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
 
-            # find previous trading date: if last available date == today -> pick penultimate
+    
             last_date = df["date"].dt.date.iloc[-1]
             if last_date == today:
                 if len(df) < 2:
@@ -262,14 +235,13 @@ def fetch_previous_trading_rows(tickers: List[str], lookback_days: int = 180) ->
             else:
                 target_date = last_date
 
-            # compute indicators on full df
+
             df_ind = df.copy()
-            # ensure 'close' numeric
+
             df_ind["close"] = pd.to_numeric(df_ind["close"], errors="coerce")
             full = calculate_indicators_full(df_ind.assign(date=df_ind["date"].dt.strftime("%Y-%m-%d")))
             full["date"] = pd.to_datetime(full["date"]).dt.tz_localize(None)
 
-            # find row for target_date
             row = full[full["date"].dt.date == target_date]
             if row.empty:
                 print(f"[daily] no row for {t} on {target_date}; available last_date={last_date}")
@@ -277,7 +249,6 @@ def fetch_previous_trading_rows(tickers: List[str], lookback_days: int = 180) ->
 
             row = row.copy()
             row["ticker"] = t
-            # format date as ISO date string
             row["date"] = row["date"].dt.strftime("%Y-%m-%d")
 
             cols = [
@@ -324,12 +295,7 @@ def main():
     if args.daily:
         df = fetch_previous_trading_rows(tickers, lookback_days=args.lookback)
     else:
-        # fall back to full backfill like original script if not daily
-        # reuse previous function fetch_all_and_upsert behavior: fetch full history per ticker
-        # For simplicity we call fetch_previous_trading_rows with large lookback and then expand to full history
-        # but here we'll just fetch lookback and upsert everything available in that window.
         print("[main] non-daily mode: fetching lookback window for each ticker and upserting all fetched rows")
-        # naive behavior: fetch lookback and upsert all rows in that window (use existing fetch_all_and_upsert logic if desired)
         frames = []
         for t in tickers:
             try:
