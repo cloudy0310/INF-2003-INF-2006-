@@ -72,7 +72,10 @@ Before running locally or deploying:
 - Git  
 
 ---
+## Deployment
+(to be added on how to deploy)
 
+---
 ## Environment Variables
 
 Copy `.env.example` → `.env`:
@@ -95,7 +98,6 @@ CLOUD_REGION=ap-southeast-1
 
 ---
 
-## Deployment
 
 
 
