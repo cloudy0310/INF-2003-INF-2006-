@@ -62,13 +62,11 @@ NUMERIC_COLS = [
 def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values("date").reset_index(drop=True)
     df["close"] = pd.to_numeric(df["close"], errors="coerce")
-
     # MACD
     ema12 = df["close"].ewm(span=12, adjust=False).mean()
     ema26 = df["close"].ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
     signal = macd.ewm(span=9, adjust=False).mean()
-
     # RSI(14)
     delta = df["close"].diff(1)
     gain = delta.where(delta > 0, 0.0)
@@ -78,13 +76,11 @@ def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
     rs = avg_gain / avg_loss.replace(0, np.nan)
     rsi = 100 - (100 / (1 + rs))
     rsi = rsi.fillna(50.0)
-
     # Bollinger Bands
     sma = df["close"].rolling(window=20, min_periods=1).mean()
     std_dev = df["close"].rolling(window=20, min_periods=1).std().fillna(0)
     upper = sma + 2 * std_dev
     lower = sma - 2 * std_dev
-
     df["macd"] = macd
     df["macd_signal"] = signal
     df["macd_hist"] = macd - signal
@@ -92,7 +88,6 @@ def calculate_indicators_full(df: pd.DataFrame) -> pd.DataFrame:
     df["bb_sma_20"] = sma
     df["bb_upper_20"] = upper
     df["bb_lower_20"] = lower
-
     cond_buy = (
         (df["macd"] < df["macd_signal"]) &
         (df["macd"] < 0) &
