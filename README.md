@@ -16,6 +16,23 @@ This project is an end-to-end cloud-native financial analytics system built usin
 ![6145251319384575233](https://github.com/user-attachments/assets/d1fba581-fde5-4303-bc81-0d21a8c04a99)
 ![6145251319384575240](https://github.com/user-attachments/assets/f1ad3231-4710-47ad-bf96-156560afe7a1)
 
+## 🌐 Live Deployment
+
+The platform is publicly hosted on AWS:
+
+**🔗 Primary URL:**  
+http://13.222.119.68
+
+**🔁 Alternate URL:**  
+[http://13.250.198.179](https://inf2003.streamlit.app/)
+
+You may use the following test credentials to log in:
+
+### 👤 Admin Account
+- **Email:** admin@gmail.com
+- **Password:** 123456
+
+> ⚠️ *These accounts are for demonstration and academic grading purposes only.*
 
 ## What This Project Does
 
