@@ -1,6 +1,18 @@
 # Stock Analytics Platform 📊
+_A Big Data & AI-Driven Stock Insights Dashboard_
 
-A cloud-based stock analysis and portfolio management platform with dual-portal architecture, powered by AWS and Streamlit.
+This project is an end-to-end cloud-native financial analytics system built using **AWS**, **distributed Spark processing**, and **LLM-driven summarisation**. It integrates multi-source financial data, computes technical indicators at scale, summarises market news using generative AI, and delivers personalised insights through a user-friendly dashboard.
+
+Trading Signals:
+<img width="1692" height="769" alt="Screenshot 2025-11-28 211543" src="https://github.com/user-attachments/assets/ef45404b-3d01-4975-84dd-bdd680f30b91" />
+
+Watchlist-Portfolio Analysis:
+<img width="1712" height="812" alt="Screenshot 2025-11-28 211620" src="https://github.com/user-attachments/assets/ab8f0282-95c1-4bb2-b62b-7fbbf0410afb" />
+
+AI-Powered News Insights:
+![6145251319384575233](https://github.com/user-attachments/assets/d1fba581-fde5-4303-bc81-0d21a8c04a99)
+![6145251319384575240](https://github.com/user-attachments/assets/f1ad3231-4710-47ad-bf96-156560afe7a1)
+
 
 ## What This Project Does
 
@@ -298,20 +310,31 @@ The platform includes automated data collection and processing:
 - Verify all dependencies installed: `pip install -r requirements.txt`
 - Check `sys.path` configuration in portal `app.py` files
 
-## Contributing
+## 👥 Contributors
 
-This project is part of the University of Saskatchewan coursework (INF-2003, INF-2006). For questions or contributions, please contact the project maintainers.
+| Name            | Role                                         |
+|-----------------|----------------------------------------------|
+| Leong Wei Jie   | News Pipeline, EMR NLP, Gemini Integration   |
+| Li Yiming       | AWS Architecture, Dashboard, RDS/DynamoDB    |
+| Teo Shao Xuan   | Session & Cookie Management                  |
+| Claudia Yue     | Cognito Authentication                       |
+| Lee Yun Jia     | Company Data & Dashboard Analytics           |
 
-## Project Info
+## 🛠 Future Work
 
-- **Repository**: [INF-2003-INF-2006-](https://github.com/cloudy0310/INF-2003-INF-2006-)
-- **Owner**: cloudy0310
-- **Course**: INF-2003 & INF-2006 (SIT)
-- **Status**: Active Development
+- **Spark Structured Streaming** for near real-time indicator computation  
+- **LLM-powered sentiment classification** to complement summarisation  
+- **Reinforcement-learning trading agents** for long-horizon strategy simulation  
+- **Full API Gateway + Lambda microservice architecture** for cleaner API boundaries  
+- **Factor-based portfolio optimisation** and advanced quant analytics  
+- **Dedicated mobile app** with push notifications for news summaries & alerts  
+- **User journey analytics** to drive personalised recommendation ranking  
 
-## License
 
-See `LICENSE` file for details.
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
 
 ---
 
