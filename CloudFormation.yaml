@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >
   CloudFormation template for Stock Analysis Platform (Live)
   Architecture includes ALB, Auto Scaling Group, EC2, RDS, DynamoDB,
-  Lambda (Event-based), AWS Batch, and Cognito.
+  Lambda (event-based), S3 Data Lake, AWS Glue, EMR, and Cognito.
 
 Parameters:
   VpcCIDR:
@@ -56,7 +56,9 @@ Resources:
       CidrBlock: !Ref PublicSubnet1CIDR
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [0, !GetAZs '']
-      Tags: [{ Key: Name, Value: PublicSubnet1 }]
+      Tags:
+        - Key: Name
+          Value: PublicSubnet1
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -65,7 +67,9 @@ Resources:
       CidrBlock: !Ref PublicSubnet2CIDR
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [1, !GetAZs '']
-      Tags: [{ Key: Name, Value: PublicSubnet2 }]
+      Tags:
+        - Key: Name
+          Value: PublicSubnet2
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -74,7 +78,9 @@ Resources:
       CidrBlock: !Ref PrivateSubnet1CIDR
       MapPublicIpOnLaunch: false
       AvailabilityZone: !Select [0, !GetAZs '']
-      Tags: [{ Key: Name, Value: PrivateSubnet1 }]
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet1
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -83,7 +89,9 @@ Resources:
       CidrBlock: !Ref PrivateSubnet2CIDR
       MapPublicIpOnLaunch: false
       AvailabilityZone: !Select [1, !GetAZs '']
-      Tags: [{ Key: Name, Value: PrivateSubnet2 }]
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -113,7 +121,7 @@ Resources:
   InstanceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow HTTP/HTTPS and DB access
+      GroupDescription: Allow HTTP/HTTPS from internet
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -124,22 +132,72 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  # NEW: Separate DB security group – only EC2 (InstanceSG) can access Postgres
+  DBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Postgres from app instances only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
           ToPort: 5432
           SourceSecurityGroupId: !Ref InstanceSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  EMRSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EMR cluster
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          SourceSecurityGroupId: !Ref EMRSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  ### --- S3 Data Lake (matches two buckets in diagram) ---
+  StockPricesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "stock-prices-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+
+  NewsArticlesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "news-articles-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
 
   ### --- EC2 Auto Scaling + Load Balancer ---
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-0c55b159cbfafe1f0  # (Replace with region’s latest Amazon Linux)
+        ImageId: ami-0c55b159cbfafe1f0  # replace with latest in your region
         InstanceType: t3.micro
         KeyName: !Ref KeyPairName
-        SecurityGroupIds: [!Ref InstanceSG]
+        SecurityGroupIds:
+          - !Ref InstanceSG
         UserData:
-          Fn::Base64: |
+          Fn::Base64: !Sub |
             #!/bin/bash
             yum update -y
             yum install -y python3 git
@@ -147,15 +205,19 @@ Resources:
             git clone https://github.com/cloudy0310/INF-2003-INF-2006-.git
             cd INF-2003-INF-2006-
             pip3 install -r requirements.txt
-            nohup streamlit run app.py --server.port 80 &
+            # run Streamlit main app (adjust path if needed)
+            nohup streamlit run app.py --server.port 80 --server.address 0.0.0.0 &
 
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: StockAppALB
       Scheme: internet-facing
-      Subnets: [!Ref PublicSubnet1, !Ref PublicSubnet2]
-      SecurityGroups: [!Ref InstanceSG]
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref InstanceSG
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -179,16 +241,27 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: [!Ref PublicSubnet1, !Ref PublicSubnet2]
+      VPCZoneIdentifier:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       MinSize: 2
       MaxSize: 4
       DesiredCapacity: 2
-      TargetGroupARNs: [!Ref TargetGroup]
+      TargetGroupARNs:
+        - !Ref TargetGroup
 
   ### --- RDS (PostgreSQL) ---
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
   RDSInstance:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -199,14 +272,10 @@ Resources:
       MasterUsername: !Ref DBUser
       MasterUserPassword: !Ref DBPassword
       PubliclyAccessible: false
-      VPCSecurityGroups: [!Ref InstanceSG]
+      VPCSecurityGroups:
+        - !Ref DBSG
       DBSubnetGroupName: !Ref DBSubnetGroup
-
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Subnet group for RDS
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      MultiAZ: false
 
   ### --- DynamoDB ---
   DynamoDBTable:
@@ -221,7 +290,7 @@ Resources:
         - AttributeName: news_id
           KeyType: HASH
 
-  ### --- Lambda Functions ---
+  ### --- IAM Roles for Lambda / Glue / EMR ---
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -236,7 +305,102 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonRDSFullAccess
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+      Policies:
+        - PolicyName: LambdaS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "${StockPricesBucket.Arn}"
+                  - !Sub "${StockPricesBucket.Arn}/*"
+                  - !Sub "${NewsArticlesBucket.Arn}"
+                  - !Sub "${NewsArticlesBucket.Arn}/*"
 
+  GlueServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: GlueDataLakeAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "${StockPricesBucket.Arn}"
+                  - !Sub "${StockPricesBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:BatchWriteItem
+                Resource: !GetAtt DynamoDBTable.Arn
+
+  EMRServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: elasticmapreduce.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole
+
+  EMRJobFlowRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role
+      Policies:
+        - PolicyName: EMRS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "${NewsArticlesBucket.Arn}"
+                  - !Sub "${NewsArticlesBucket.Arn}/*"
+                  - !Sub "${StockPricesBucket.Arn}"
+                  - !Sub "${StockPricesBucket.Arn}/*"
+
+  EMRInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EMRJobFlowRole
+
+  ### --- Lambda Functions + EventBridge Rules ---
   LambdaStockEvent:
     Type: AWS::Lambda::Function
     Properties:
@@ -274,54 +438,85 @@ Resources:
   NewsEventRule:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: rate(12 hours)
+      ScheduleExpression: rate(30 minutes)
       Targets:
         - Arn: !GetAtt LambdaNewsEvent.Arn
           Id: NewsTarget
 
-  ### --- AWS Batch ---
-  BatchServiceRole:
-    Type: AWS::IAM::Role
+  # NEW: Allow EventBridge to invoke Lambdas
+  AllowEventsInvokeStockLambda:
+    Type: AWS::Lambda::Permission
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: batch.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole
+      FunctionName: !Ref LambdaStockEvent
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StockEventRule.Arn
 
-  BatchComputeEnvironment:
-    Type: AWS::Batch::ComputeEnvironment
+  AllowEventsInvokeNewsLambda:
+    Type: AWS::Lambda::Permission
     Properties:
-      ComputeEnvironmentName: StockBatchEnv
-      Type: MANAGED
-      State: ENABLED
-      ServiceRole: !Ref BatchServiceRole
-      ComputeResources:
-        Type: EC2
-        MinvCpus: 0
-        MaxvCpus: 4
-        InstanceTypes: [t3.micro]
-        Subnets: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-        SecurityGroupIds: [!Ref InstanceSG]
+      FunctionName: !Ref LambdaNewsEvent
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt NewsEventRule.Arn
 
-  BatchJobQueue:
-    Type: AWS::Batch::JobQueue
+  ### --- (Optional) Glue Job + EMR Cluster skeletons ---
+  GlueJobComputeIndicators:
+    Type: AWS::Glue::Job
     Properties:
-      ComputeEnvironmentOrder:
-        - Order: 1
-          ComputeEnvironment: !Ref BatchComputeEnvironment
-      Priority: 1
+      Name: compute-indicators-job
+      Role: !Ref GlueServiceRole
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${StockPricesBucket}/scripts/compute_indicators.py"
+        PythonVersion: "3"
+      GlueVersion: "4.0"
+      MaxRetries: 0
+      NumberOfWorkers: 2
+      WorkerType: G.1X
+
+  EMRCluster:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Name: FinancialNewsNLPCluster
+      ReleaseLabel: emr-6.13.0
+      Applications:
+        - Name: Spark
+      ServiceRole: !Ref EMRServiceRole
+      JobFlowRole: !Ref EMRInstanceProfile
+      VisibleToAllUsers: true
+      Instances:
+        Ec2SubnetId: !Ref PrivateSubnet1
+        Ec2SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+        MasterInstanceGroup:
+          InstanceCount: 1
+          InstanceType: m5.xlarge
+          Name: Master
+        CoreInstanceGroup:
+          InstanceCount: 2
+          InstanceType: m5.large
+          Name: Core
+        TerminationProtected: false
+        KeepJobFlowAliveWhenNoSteps: true
+        EmrManagedMasterSecurityGroup: !Ref EMRSG
+        EmrManagedSlaveSecurityGroup: !Ref EMRSG
 
   ### --- Cognito ---
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: StockAppUserPool
-      AutoVerifiedAttributes: ["email"]
+      AutoVerifiedAttributes:
+        - email
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: StockAppClient
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
 
   CognitoIdentityPool:
     Type: AWS::Cognito::IdentityPool
@@ -333,12 +528,31 @@ Outputs:
   LoadBalancerDNS:
     Description: ALB endpoint for web app
     Value: !GetAtt ALB.DNSName
+
   RDSEndpoint:
     Description: PostgreSQL endpoint
     Value: !GetAtt RDSInstance.Endpoint.Address
+
   DynamoDBTableName:
     Description: DynamoDB table name
     Value: !Ref DynamoDBTable
-  CognitoPoolId:
+
+  StockPricesBucketName:
+    Description: S3 bucket for stock prices
+    Value: !Ref StockPricesBucket
+
+  NewsArticlesBucketName:
+    Description: S3 bucket for news articles
+    Value: !Ref NewsArticlesBucket
+
+  CognitoUserPoolId:
     Description: Cognito User Pool ID
     Value: !Ref CognitoUserPool
+
+  GlueJobName:
+    Description: Glue Job for computing indicators
+    Value: !Ref GlueJobComputeIndicators
+
+  EMRClusterId:
+    Description: EMR Cluster ID
+    Value: !Ref EMRCluster

@@ -1,204 +1,318 @@
-# 📈 Cloud-Native Financial Analytics Platform  
-### A Big Data & AI-Driven Stock Insights Dashboard
+# Stock Analytics Platform 📊
 
-This project is an end-to-end cloud-native financial analytics system built using AWS, distributed Spark processing, and LLM-driven summarisation. It integrates multi-source financial data, computes technical indicators at scale, summarises market news using generative AI, and delivers personalised insights through a user-friendly dashboard.
+A cloud-based stock analysis and portfolio management platform with dual-portal architecture, powered by AWS and Streamlit.
 
----
+## What This Project Does
 
-# 🚀 Key Features
+This project is a full-stack stock analytics platform that provides:
 
-## **1. Automated Data Ingestion (Event-Driven)**  
-- Stock prices collected daily via **AWS Lambda + EventBridge**  
-- Financial news scraped via **Google News RSS feeds**  
-- Canonical URL resolution + full-text extraction  
-- All raw data stored in **Amazon S3 Data Lake**
+- **User Portal**: Real-time stock analysis, portfolio tracking, financial news feeds, watchlist management, and market insights
+- **Admin Portal**: User management, content administration, system analytics, and platform monitoring
+- **Automated Data Pipeline**: Scheduled ETL jobs for stock prices, company information, financial data, and news articles
+- **Cloud-Native Architecture**: Production-ready AWS infrastructure with auto-scaling, load balancing, and high availability
 
----
+The platform uses AWS Cognito for secure authentication with role-based access control (admin/user groups).
 
-## **2. Distributed Big Data Processing**
+## Why This Project is Useful
 
-### **AWS Glue (Spark ETL)**
-- Preprocess OHLC datasets  
-- Compute technical indicators:  
-  - MACD, RSI, EMA, SMA, Bollinger Bands  
-- Generate buy/sell signals  
-- Write derived analytics to **DynamoDB** for low-latency queries  
+- **End-to-End Solution**: Complete platform for stock analysis and portfolio management without building from scratch
+- **Scalable Infrastructure**: AWS CloudFormation templates enable one-click deployment with auto-scaling EC2 instances
+- **Real-Time Data**: Automated Lambda and Glue jobs continuously fetch and process market data
+- **Production-Ready**: Includes load balancing, multi-AZ deployment, and database replication
+- **Extensible Design**: Modular portal structure makes it easy to add new features and pages
+- **Secure Authentication**: AWS Cognito integration with OAuth2, token refresh, and group-based authorization
 
-### **AWS EMR (Spark NLP + LLM)**
-- Large-scale news cleaning & preparation  
-- Prompted summarisation using **Google Gemini 2.5 Flash**  
-- Daily narrative summaries written to **S3**
+## Getting Started
 
----
+### Prerequisites
 
-## **3. Hybrid Storage Architecture**
+- **Python 3.9+**
+- **pip** (Python package manager)
+- **PostgreSQL** (local or AWS RDS)
+- **AWS Account** (for deployment)
+- **AWS CLI** (configured for deployment)
+- **Git**
 
-- **Amazon S3** → Data Lake for raw + processed datasets  
-- **Amazon DynamoDB** → Time-series indicators & AI summaries  
-- **Amazon RDS (PostgreSQL)** → Users, watchlists, metadata  
+### Installation
 
----
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/cloudy0310/INF-2003-INF-2006-.git
+   cd INF-2003-INF-2006-
+   ```
 
-## **4. Secure User Access & Authentication**
+2. **Install Python dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- Managed authentication via **AWS Cognito**  
-- JWT-based verification  
-- Role-based access control (**Admin/User**)  
+3. **Create and configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` with your configuration:
+   ```ini
+   # AWS Cognito
+   COGNITO_DOMAIN=your-domain.auth.region.amazoncognito.com
+   COGNITO_CLIENT_ID=your_client_id
+   COGNITO_CLIENT_SECRET=your_client_secret
+   COGNITO_REDIRECT_URI=http://localhost:8501
 
----
+   # Database
+   RDS_HOST=your-rds-endpoint.region.rds.amazonaws.com
+   RDS_PORT=5432
+   RDS_DB=stock_db
+   RDS_USER=postgres
+   RDS_PASSWORD=your_password
+   DB_SCHEMA=public
 
-## **5. Interactive Streamlit Dashboard**
+   # AWS
+   AWS_REGION=us-east-1
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   ```
 
-Hosted on **AWS EC2**, displaying:
+4. **Run the application**
+   ```bash
+   streamlit run app.py
+   ```
+   
+   The application will be available at `http://localhost:8501`
 
-- Real-time stock charts  
-- Technical indicators  
-- Buy/sell signals  
-- Watchlist analytics  
-- AI-generated market summaries  
-
-Clean, responsive UI designed for beginner and intermediate investors.
-
----
-
-# 🧱 System Architecture
-
-### **High-Level Overview**
-- **Ingestion Layer:** Lambda + EventBridge  
-- **Storage Layer:** S3, RDS, DynamoDB  
-- **Analytics Layer:** Glue Spark ETL + EMR Spark NLP  
-- **Interface Layer:** EC2-hosted Streamlit dashboard  
-- **Security Layer:** IAM, VPC, KMS, Cognito  
-
-*(Insert architecture diagram)*  
-
----
-
-# 📂 Project Structure
-
-├── lambda/
-│ ├── scrape_prices/
-│ ├── scrape_news/
-│
-├── glue/
-│ ├── preprocess_time_series.py
-│ ├── compute_indicators.py
-│
-├── emr/
-│ ├── news_nlp_pipeline.py
-│
-├── streamlit/
-│ ├── pages/
-│ ├── authentication/
-│ ├── dashboard/
-│
-├── infrastructure/
-│ ├── cloudformation/
-│
-├── docs/
-│ ├── architecture_diagram.png
-│ ├── data_flow.png
-│
-└── README.md
-
----
-
-# ⚙️ Deployment Instructions
-
-## **Prerequisites**
-- AWS Account  
-- IAM admin permissions  
-- Python 3.10+  
-- AWS CLI configured  
-- Streamlit installed  
-- Access to Gemini API  
-
----
-
-## **1. Deploy Infrastructure (CloudFormation)**
+### Quick Start
 
 ```bash
-aws cloudformation deploy \
-  --template-file infra/template.yaml \
-  --stack-name fin-analytics \
-  --capabilities CAPABILITY_NAMED_IAM
-2. Deploy Lambda Functions
+# Install dependencies
+pip install -r requirements.txt
 
-cd lambda/scrape_prices
-zip -r function.zip .
+# Set up environment
+cp .env.example .env
+# Edit .env with your Cognito and database credentials
 
-aws lambda update-function-code \
-  --function-name scrapePrices \
-  --zip-file fileb://function.zip
-Repeat for the news ingestion function.
+# Run locally
+streamlit run app.py
 
-3. Start Glue Jobs
+# Login using your Cognito credentials
+# Users in the 'admin' group access admin portal
+# Other users access user portal
+```
 
-aws glue start-job-run \
-  --job-name compute-indicators-job
-4. Launch EMR Cluster for NLP
+## Project Structure
 
-aws emr create-cluster \
-  --name "Financial News NLP" \
-  --release-label emr-6.13.0 \
-  --applications Name=Spark \
-  --instance-type m5.xlarge \
-  --instance-count 3
-5. Run Streamlit Dashboard
+```
+├── app.py                          # Main entry point (authentication & routing)
+├── update_details.py               # User profile management
+├── requirements.txt                # Python dependencies
+├── CloudFormation.yaml             # AWS infrastructure template
+│
+├── admin_portal/                   # Admin dashboard
+│   ├── app.py                      # Admin portal router
+│   ├── styles.css                  # Custom styling
+│   ├── api/                        # API endpoints
+│   │   ├── admin_content.py
+│   │   ├── stock_analysis.py
+│   │   ├── portfolio.py
+│   │   ├── watchlist.py
+│   │   └── display_news.py
+│   └── page/                       # UI pages
+│       ├── admin_home.py           # Admin dashboard
+│       ├── stock_analysis.py
+│       ├── watchlist.py
+│       ├── news.py
+│       └── insights.py
+│
+├── user_portal/                    # User dashboard
+│   ├── app.py                      # User portal router
+│   ├── db.py                       # Database utilities
+│   ├── api/                        # API endpoints
+│   │   ├── stock_analysis.py
+│   │   ├── portfolio.py
+│   │   ├── watchlist.py
+│   │   └── display_news.py
+│   └── page/                       # UI pages
+│       ├── home.py                 # Dashboard
+│       ├── stock_analysis.py
+│       ├── watchlist.py
+│       ├── news.py
+│       ├── insights.py
+│       └── update_details.py
+│
+└── pipeline_scripts/               # Data processing
+    ├── infra/                      # SQL setup scripts
+    │   ├── set-up.sql
+    │   └── rds.sql
+    └── pipeline (Big Data)/        # Current ETL pipeline
+        ├── fetch_companies.py
+        ├── fetch_financials.py
+        ├── fetch_news_daily.py
+        ├── stock-price-to-s3-lambda.py
+        ├── spark_summarize_articles.py
+        └── utils.py
+```
 
-streamlit run dashboard/home.py
-🔐 Security
-The system implements multi-layer security:
+## Tech Stack
 
-VPC isolation for RDS/DynamoDB
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Streamlit, Plotly, Custom CSS |
+| **Backend** | Python, SQLAlchemy, PostgreSQL |
+| **Cloud** | AWS (EC2, ALB, RDS, Lambda, DynamoDB, Cognito) |
+| **Data Processing** | AWS Glue, Apache Spark, Pandas |
+| **Infrastructure** | CloudFormation, Auto Scaling Groups |
+| **Authentication** | AWS Cognito (OAuth2/OIDC) |
 
-IAM least-privilege roles per Lambda / Glue job
+## Usage Examples
 
-KMS encryption at rest
+### For Users
 
-TLS 1.2+ encryption in transit
+**View Portfolio Dashboard**
+- Login with your Cognito account
+- Navigate to "User Portal" → "Home"
+- View holdings, performance, and watchlist
 
-Cognito-managed authentication
+**Analyze a Stock**
+- Go to "Stock Analysis"
+- Enter a stock ticker (e.g., AAPL, GOOGL)
+- Review technical analysis and metrics
 
-Secrets stored in AWS Secrets Manager
+**Read Financial News**
+- Navigate to "News" section
+- Filter by category or date
+- Read summarized news articles
 
-📊 Experimental Results
-Task	Lambda Time	Spark Time	Speedup
-RSI (10k rows)	4.1s	0.7s	6×
-MACD	6.5s	0.9s	7.2×
-Bollinger Bands	3.8s	0.5s	7.6×
+### For Admins
 
-⚠ Limitations
-Google News RSS provides inconsistent metadata
+**Access Admin Dashboard**
+- Login with admin group credentials
+- Navigate to "Admin Portal"
+- View analytics and system metrics
 
-External LLM API introduces latency + rate-limit risks
+**Manage Content**
+- Go to "Content Management"
+- Review and curate news articles
+- Update stock data
 
-EMR cluster spin-up overhead for small jobs
+## Deployment
 
-No API Gateway layer (currently uses direct SDK calls)
+### Deploy to AWS
 
-Limited RDS retention & governance policies
+1. **Create an EC2 key pair**
+   ```bash
+   aws ec2 create-key-pair --key-name stock-app-key
+   ```
 
-🛠 Future Work
-Spark Structured Streaming for near real-time indicators
+2. **Prepare Cognito**
+   - Create a Cognito User Pool
+   - Add app client with Cognito-hosted UI
+   - Create admin user group
 
-LLM sentiment classification
+3. **Deploy CloudFormation stack**
+   ```bash
+   aws cloudformation create-stack \
+     --stack-name stock-app \
+     --template-body file://CloudFormation.yaml \
+     --parameters \
+       ParameterKey=KeyPairName,ParameterValue=stock-app-key \
+       ParameterKey=DBUser,ParameterValue=postgres \
+       ParameterKey=DBPassword,ParameterValue=YourSecurePassword123!
+   ```
 
-Reinforcement-learning trading agents
+4. **Monitor stack creation**
+   ```bash
+   aws cloudformation describe-stacks \
+     --stack-name stock-app \
+     --query 'Stacks[0].StackStatus'
+   ```
 
-Full API Gateway microservice architecture
+5. **Get the application URL**
+   ```bash
+   aws cloudformation describe-stacks \
+     --stack-name stock-app \
+     --query 'Stacks[0].Outputs[?OutputKey==`LoadBalancerDNS`].OutputValue' \
+     --output text
+   ```
 
-Factor-based portfolio optimisation
+### Infrastructure Components
 
-Mobile app with push notifications
+- **VPC & Networking**: Multi-AZ setup with public/private subnets
+- **EC2 Auto Scaling**: 2-4 instances running Streamlit app
+- **Application Load Balancer**: Distributes traffic across instances
+- **RDS PostgreSQL**: 20GB database for user and stock data
+- **DynamoDB**: NoSQL table for news storage
+- **Lambda Functions**: Scheduled jobs for data updates
+- **Cognito User Pool**: Manages authentication and authorization
 
-User journey analytics for summarisation ranking
+## Data Pipeline
 
-👥 Contributors
-Name	Role
-Leong Wei Jie	News Pipeline, EMR NLP, Gemini Integration
-Li Yiming	Cloud Architecture, Dashboard, RDS/DynamoDB Integration
-Teo Shao Xuan	Session & Cookie Management
-Claudia Yue	Cognito Authentication
-Lee Yun Jia	Company Data Retrieval & Analytics
+The platform includes automated data collection and processing:
 
+### Stock Prices
+- Lambda function runs daily (via CloudWatch Events)
+- Fetches latest prices using yfinance API
+- Stores in PostgreSQL RDS
+
+### Company & Financial Data
+- Weekly fetch of company information
+- Officer details and corporate structure
+- Financial metrics and ratios
+
+### News Processing
+- Real-time and daily news scraping
+- AWS Glue + Spark jobs for article summarization
+- Stores in DynamoDB with metadata
+
+### Analytics
+- Batch processing for insights
+- Performance calculations
+- Trend analysis
+
+## Where to Get Help
+
+### Documentation
+- **Setup**: See `.env.example` for all configuration options
+- **Infrastructure**: Review `CloudFormation.yaml` for AWS architecture details
+- **Data Pipeline**: Check `pipeline_scripts/` directory for ETL jobs
+- **Portal Code**: Each portal's `app.py` contains routing logic
+
+### Resources
+- [Streamlit Documentation](https://docs.streamlit.io/)
+- [AWS CloudFormation Guide](https://docs.aws.amazon.com/cloudformation/)
+- [AWS Cognito Setup](https://docs.aws.amazon.com/cognito/latest/developerguide/)
+- [SQLAlchemy ORM](https://docs.sqlalchemy.org/)
+
+### Troubleshooting
+
+**Database Connection Failed**
+- Verify RDS endpoint and credentials in `.env`
+- Check security group allows port 5432 from your IP
+- Ensure database schema exists
+
+**Cognito Login Not Working**
+- Confirm COGNITO_DOMAIN, CLIENT_ID in `.env`
+- Verify redirect URI matches app URL in Cognito console
+- Check user exists in Cognito User Pool
+
+**Module Import Errors**
+- Ensure running `streamlit run app.py` from project root
+- Verify all dependencies installed: `pip install -r requirements.txt`
+- Check `sys.path` configuration in portal `app.py` files
+
+## Contributing
+
+This project is part of the University of Saskatchewan coursework (INF-2003, INF-2006). For questions or contributions, please contact the project maintainers.
+
+## Project Info
+
+- **Repository**: [INF-2003-INF-2006-](https://github.com/cloudy0310/INF-2003-INF-2006-)
+- **Owner**: cloudy0310
+- **Course**: INF-2003 & INF-2006 (SIT)
+- **Status**: Active Development
+
+## License
+
+See `LICENSE` file for details.
+
+---
+
+**Happy investing! 📈**
