@@ -1,179 +1,204 @@
-# INF-2003 & INF-2006 Cloud + Big Data Project  
-### Cloud-Deployed Stocks Analytics Platform (Python + PostgreSQL + AWS)
+# 📈 Cloud-Native Financial Analytics Platform  
+### A Big Data & AI-Driven Stock Insights Dashboard
 
-## 🚀 Live Deployment  
-http://13.222.119.68  
-Publicly hosted on AWS EC2 with full Infrastructure-as-Code provisioning.
+This project is an end-to-end cloud-native financial analytics system built using AWS, distributed Spark processing, and LLM-driven summarisation. It integrates multi-source financial data, computes technical indicators at scale, summarises market news using generative AI, and delivers personalised insights through a user-friendly dashboard.
 
 ---
 
-# 📌 1. Overview
+# 🚀 Key Features
 
-This project is a **cloud-native stocks analytics platform** developed for:
-
-- **INF2003 – Database Systems**
-- **INF2006 – Cloud Computing & Big Data**
-
-It integrates:
-
-- Python backend (REST API)  
-- PostgreSQL relational database with PL/pgSQL functions  
-- Streamlit web portals (User + Admin)  
-- AWS-hosted deployment using CloudFormation  
-- Big data ingestion + ETL using S3, Lambda, Glue, EMR  
-
-The system provides:
-
-- **User Portal** for analytics, signals, summaries  
-- **Admin Portal** for data management  
-- **Big Data Pipeline** for automated processing  
-- **Cloud Infrastructure** for scalability and automation  
+## **1. Automated Data Ingestion (Event-Driven)**  
+- Stock prices collected daily via **AWS Lambda + EventBridge**  
+- Financial news scraped via **Google News RSS feeds**  
+- Canonical URL resolution + full-text extraction  
+- All raw data stored in **Amazon S3 Data Lake**
 
 ---
 
-# 📁 2. Repository Structure
+## **2. Distributed Big Data Processing**
 
-/admin_portal – Admin dashboard (Streamlit)
-/user_portal – User dashboard (Streamlit)
-/backend – Python REST API backend
-/pipeline_scripts – Lambda, Glue, EMR jobs
-/docs – Architecture diagrams, screenshots
-/CloudFormation.yaml – Full IaC template
-/requirements.txt – Python libraries
-/.env.example – Environment variable template
+### **AWS Glue (Spark ETL)**
+- Preprocess OHLC datasets  
+- Compute technical indicators:  
+  - MACD, RSI, EMA, SMA, Bollinger Bands  
+- Generate buy/sell signals  
+- Write derived analytics to **DynamoDB** for low-latency queries  
 
-yaml
-Copy code
-
----
-
-# ☁️ 3. Cloud Architecture (High-Level)
-
-### Compute
-- EC2 instance hosting backend & portals  
-- Lambda for automated ingestion  
-
-### Storage
-- Amazon RDS PostgreSQL  
-- Amazon S3 Data Lake (raw + processed parquet)
-
-### Big Data
-- AWS Glue ETL (daily technical indicators)  
-- Amazon EMR for heavy NLP (LLM news summarization + sentiment)
-
-### IaC
-Provisioned using CloudFormation:
-
-- VPC, subnets, routing tables  
-- EC2 instance  
-- RDS PostgreSQL  
-- IAM roles  
-- Security groups  
-- S3 buckets  
-- Glue + EMR roles  
+### **AWS EMR (Spark NLP + LLM)**
+- Large-scale news cleaning & preparation  
+- Prompted summarisation using **Google Gemini 2.5 Flash**  
+- Daily narrative summaries written to **S3**
 
 ---
 
-# 🧠 4. Big Data Pipeline (INF2006 Component)
+## **3. Hybrid Storage Architecture**
 
-## 4.1 Data Ingestion (Lambda)
-
-### Stock Prices (5 min)
-- Fetch prices via yfinance  
-- Convert to Parquet  
-- Store in:  
-  `s3://data-lake/raw/stocks/YYYY-MM-DD/`
-
-### News Articles (30 min)
-- Fetch articles  
-- Store JSON in:  
-  `s3://data-lake/raw/news/`
+- **Amazon S3** → Data Lake for raw + processed datasets  
+- **Amazon DynamoDB** → Time-series indicators & AI summaries  
+- **Amazon RDS (PostgreSQL)** → Users, watchlists, metadata  
 
 ---
 
-## 4.2 ETL Processing
+## **4. Secure User Access & Authentication**
 
-### AWS Glue – Daily Batch Processing
-Performs distributed Spark computations:
-
-- RSI  
-- MACD  
-- Bollinger Bands  
-- SMA / EMA  
-- Cleans OHLC data  
-
-Output written to:  
-`s3://data-lake/processed/stocks/`
+- Managed authentication via **AWS Cognito**  
+- JWT-based verification  
+- Role-based access control (**Admin/User**)  
 
 ---
 
-## 4.3 AWS EMR – NLP / LLM Processing
+## **5. Interactive Streamlit Dashboard**
 
-Handles workloads too large for Glue:
+Hosted on **AWS EC2**, displaying:
 
-- Sentiment analysis  
-- Topic clustering  
-- Extractive + abstractive summaries  
-- Batch LLM processing  
+- Real-time stock charts  
+- Technical indicators  
+- Buy/sell signals  
+- Watchlist analytics  
+- AI-generated market summaries  
 
-Output written to:  
-`s3://data-lake/processed/news/`
-
----
-
-## 4.4 Output Delivery
-Processed results are stored in:
-
-- PostgreSQL (metadata + summaries)  
-- DynamoDB (signals, if enabled)  
-
-Served to frontends with sub-second latency.
+Clean, responsive UI designed for beginner and intermediate investors.
 
 ---
 
-# 🛠 5. Running Locally
+# 🧱 System Architecture
 
-## Install dependencies
+### **High-Level Overview**
+- **Ingestion Layer:** Lambda + EventBridge  
+- **Storage Layer:** S3, RDS, DynamoDB  
+- **Analytics Layer:** Glue Spark ETL + EMR Spark NLP  
+- **Interface Layer:** EC2-hosted Streamlit dashboard  
+- **Security Layer:** IAM, VPC, KMS, Cognito  
+
+*(Insert architecture diagram)*  
+
+---
+
+# 📂 Project Structure
+
+├── lambda/
+│ ├── scrape_prices/
+│ ├── scrape_news/
+│
+├── glue/
+│ ├── preprocess_time_series.py
+│ ├── compute_indicators.py
+│
+├── emr/
+│ ├── news_nlp_pipeline.py
+│
+├── streamlit/
+│ ├── pages/
+│ ├── authentication/
+│ ├── dashboard/
+│
+├── infrastructure/
+│ ├── cloudformation/
+│
+├── docs/
+│ ├── architecture_diagram.png
+│ ├── data_flow.png
+│
+└── README.md
+
+---
+
+# ⚙️ Deployment Instructions
+
+## **Prerequisites**
+- AWS Account  
+- IAM admin permissions  
+- Python 3.10+  
+- AWS CLI configured  
+- Streamlit installed  
+- Access to Gemini API  
+
+---
+
+## **1. Deploy Infrastructure (CloudFormation)**
+
 ```bash
-pip install -r requirements.txt
-Run backend
-bash
-Copy code
-cd backend
-python app.py
-Run User Portal
-bash
-Copy code
-cd user_portal
-streamlit run app.py
-Run Admin Portal
-bash
-Copy code
-cd admin_portal
-streamlit run app.py
-🔧 6. Deployment (CloudFormation)
-Deploy stack
-bash
-Copy code
 aws cloudformation deploy \
-  --template-file CloudFormation.yaml \
-  --stack-name stocks-app \
+  --template-file infra/template.yaml \
+  --stack-name fin-analytics \
   --capabilities CAPABILITY_NAMED_IAM
-SSH into EC2
-bash
-Copy code
-ssh -i key.pem ec2-user@<public-ip>
-🔐 7. Environment Variables
-Copy .env.example → .env and fill in:
+2. Deploy Lambda Functions
 
-env
-Copy code
-DB_HOST=
-DB_PORT=5432
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
+cd lambda/scrape_prices
+zip -r function.zip .
 
-SECRET_KEY=
-JWT_SECRET=
-CLOUD_REGION=ap-southeast-1
+aws lambda update-function-code \
+  --function-name scrapePrices \
+  --zip-file fileb://function.zip
+Repeat for the news ingestion function.
+
+3. Start Glue Jobs
+
+aws glue start-job-run \
+  --job-name compute-indicators-job
+4. Launch EMR Cluster for NLP
+
+aws emr create-cluster \
+  --name "Financial News NLP" \
+  --release-label emr-6.13.0 \
+  --applications Name=Spark \
+  --instance-type m5.xlarge \
+  --instance-count 3
+5. Run Streamlit Dashboard
+
+streamlit run dashboard/home.py
+🔐 Security
+The system implements multi-layer security:
+
+VPC isolation for RDS/DynamoDB
+
+IAM least-privilege roles per Lambda / Glue job
+
+KMS encryption at rest
+
+TLS 1.2+ encryption in transit
+
+Cognito-managed authentication
+
+Secrets stored in AWS Secrets Manager
+
+📊 Experimental Results
+Task	Lambda Time	Spark Time	Speedup
+RSI (10k rows)	4.1s	0.7s	6×
+MACD	6.5s	0.9s	7.2×
+Bollinger Bands	3.8s	0.5s	7.6×
+
+⚠ Limitations
+Google News RSS provides inconsistent metadata
+
+External LLM API introduces latency + rate-limit risks
+
+EMR cluster spin-up overhead for small jobs
+
+No API Gateway layer (currently uses direct SDK calls)
+
+Limited RDS retention & governance policies
+
+🛠 Future Work
+Spark Structured Streaming for near real-time indicators
+
+LLM sentiment classification
+
+Reinforcement-learning trading agents
+
+Full API Gateway microservice architecture
+
+Factor-based portfolio optimisation
+
+Mobile app with push notifications
+
+User journey analytics for summarisation ranking
+
+👥 Contributors
+Name	Role
+Leong Wei Jie	News Pipeline, EMR NLP, Gemini Integration
+Li Yiming	Cloud Architecture, Dashboard, RDS/DynamoDB Integration
+Teo Shao Xuan	Session & Cookie Management
+Claudia Yue	Cognito Authentication
+Lee Yun Jia	Company Data Retrieval & Analytics
+
