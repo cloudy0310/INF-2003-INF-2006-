@@ -358,4 +358,18 @@ This project is licensed under the **MIT License**.
 
 ---
 
-**Happy investing! 📈**
+## ⚠️ Disclaimer
+
+This platform is developed strictly for **educational and academic purposes** as part of the Singapore Institute of Technology coursework (INF2006).  
+
+It **does not provide financial advice**, investment recommendations, or trading guidance.  
+All analytics, signals, summaries, and visualisations are generated for demonstration only and **must not be used to make real-world financial decisions**.
+
+By accessing the system, you acknowledge that:
+
+- The data may be incomplete, delayed, or inaccurate  
+- The indicators and summaries are not validated for real trading  
+- The authors are **not liable** for any financial losses arising from the use or interpretation of this platform  
+
+If you require financial advice, please consult a licensed financial advisor.
+
