@@ -3,13 +3,16 @@ _A Big Data & AI-Driven Stock Insights Dashboard_
 
 This project is an end-to-end cloud-native financial analytics system built using **AWS**, **distributed Spark processing**, and **LLM-driven summarisation**. It integrates multi-source financial data, computes technical indicators at scale, summarises market news using generative AI, and delivers personalised insights through a user-friendly dashboard.
 
-Trading Signals:
+**Trading Signals:**
+
 <img width="1692" height="769" alt="Screenshot 2025-11-28 211543" src="https://github.com/user-attachments/assets/ef45404b-3d01-4975-84dd-bdd680f30b91" />
 
-Watchlist-Portfolio Analysis:
+**Watchlist-Portfolio Analysis:**
+
 <img width="1712" height="812" alt="Screenshot 2025-11-28 211620" src="https://github.com/user-attachments/assets/ab8f0282-95c1-4bb2-b62b-7fbbf0410afb" />
 
-AI-Powered News Insights:
+**AI-Powered News Insights:**
+
 ![6145251319384575233](https://github.com/user-attachments/assets/d1fba581-fde5-4303-bc81-0d21a8c04a99)
 ![6145251319384575240](https://github.com/user-attachments/assets/f1ad3231-4710-47ad-bf96-156560afe7a1)
 
