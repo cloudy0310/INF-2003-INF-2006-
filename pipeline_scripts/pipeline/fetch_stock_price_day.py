@@ -30,7 +30,6 @@ import datetime
 
 load_dotenv()
 
-# optional DB libs
 try:
     from supabase import create_client
 except Exception:
@@ -41,7 +40,6 @@ try:
 except Exception:
     boto3 = None
 
-# requests for REST fallback
 try:
     import requests
 except Exception:
@@ -119,7 +117,7 @@ def chunked(iterable, size=500):
             break
         yield chunk
 
-# ---------- Robust Supabase upsert (client + REST fallback) ----------
+# ---------- Supabase upsert ----------
 def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflict: str = "ticker,date") -> None:
     if df is None or df.empty:
         print("[upsert_supabase] dataframe empty, nothing to write")
@@ -190,7 +188,7 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
             print(f"[rest] upsert exception for chunk {i}-{i+len(chunk)}: {e}")
             raise
 
-# ---------- DynamoDB upsert (unchanged) ----------
+# ---------- DynamoDB upsert ----------
 def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = None) -> None:
     if boto3 is None:
         raise RuntimeError("boto3 not installed")

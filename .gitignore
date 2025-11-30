@@ -57,3 +57,4 @@ htmlcov/
 # ---- System ----
 .DS_Store
 Thumbs.db
+.github/prompts/create-readme.prompt.md

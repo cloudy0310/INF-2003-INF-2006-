@@ -21,7 +21,6 @@ import yfinance as yf
 
 load_dotenv()
 
-# optional DB libs
 try:
     from supabase import create_client
 except Exception:
@@ -32,7 +31,6 @@ try:
 except Exception:
     boto3 = None
 
-# requests for REST fallback
 try:
     import requests
 except Exception:
@@ -115,7 +113,7 @@ def chunked(iterable, size=500):
             break
         yield chunk
 
-# ---------- Robust Supabase upsert (client + REST fallback) ----------
+# ---------- Supabase upsert ----------
 def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflict: str = "ticker,date") -> None:
     """
     Upsert to Supabase:
@@ -146,16 +144,16 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
         return nr
 
     normalized = [norm(r) for r in records]
-    chunk_size = 200  # safer chunk size to reduce throttling / payload issues
+    chunk_size = 200  # chunk size to reduce throttling / payload issues
 
     for i in range(0, len(normalized), chunk_size):
         chunk = normalized[i:i+chunk_size]
-        # Try client if available
+        # Try client upsert first
         if create_client is not None:
             try:
                 supabase = create_client(url, key)
                 resp = supabase.table(table).upsert(chunk).execute()
-                # supabase-py often returns object/dict-like with .data/.error or dict keys
+
                 status = getattr(resp, "status_code", None)
                 data = getattr(resp, "data", None) or (resp.get("data") if isinstance(resp, dict) else None)
                 error = getattr(resp, "error", None) or (resp.get("error") if isinstance(resp, dict) else None)
@@ -192,10 +190,9 @@ def upsert_supabase(df: pd.DataFrame, table: str, url: str, key: str, on_conflic
                 raise RuntimeError(f"REST upsert failed: {r.status_code} {r.text}")
         except Exception as e:
             print(f"[rest] upsert exception for chunk {i}-{i+len(chunk)}: {e}")
-            # choose whether to raise or continue; raising helps you notice failures immediately:
             raise
 
-# ---------- DynamoDB upsert (unchanged) ----------
+# ---------- DynamoDB upsert ----------
 def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = None) -> None:
     if boto3 is None:
         raise RuntimeError("boto3 not installed")
@@ -223,7 +220,7 @@ def upsert_dynamodb(df: pd.DataFrame, table_name: str, region: Optional[str] = N
                 batch.put_item(Item=item)
         print(f"[dynamodb] wrote {len(chunk)} items")
 
-# ---------- Main backfill flow (unchanged, with extra debug) ----------
+# ---------- Main backfill flow ----------
 def fetch_all_and_upsert(tickers: List[str], start: Optional[str] = None) -> pd.DataFrame:
     frames = []
     for t in tickers:
